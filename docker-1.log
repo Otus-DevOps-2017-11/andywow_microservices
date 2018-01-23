@@ -1,0 +1,5 @@
+REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
+andywow/ubuntu-tmp-file   latest              b9a5093dde6e        31 seconds ago      111MB
+ubuntu                    16.04               2a4cca5ac898        7 days ago          111MB
+nginx                     latest              3f8a4339aadd        4 weeks ago         108MB
+hello-world               latest              f2a91732366c        2 months ago        1.85kB
