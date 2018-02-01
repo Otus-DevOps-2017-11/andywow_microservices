@@ -1,7 +1,10 @@
-FROM ruby:2.2
+FROM ubuntu:16.04
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential && \
+    apt-get install --no-install-recommends -y ruby-full \
+                                               ruby-dev \
+                                               build-essential && \
+    gem install bundler --no-ri --no-rdoc && \
     rm -rf /var/lib/apt/lists/*
 
 ENV APP_HOME /app
