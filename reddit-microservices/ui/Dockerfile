@@ -1,18 +1,18 @@
-FROM ubuntu:16.04
+FROM alpine:3.7
 
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y ruby-full \
-                                               ruby-dev \
-                                               build-essential && \
-    gem install bundler --no-ri --no-rdoc && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ruby ruby-json && \
+    apk add --no-cache --virtual .build ruby-dev \
+                                        gcc \
+                                        make \
+                                        g++ \
+                                        ruby-bundler
 
 ENV APP_HOME /app
 RUN mkdir "$APP_HOME"
 WORKDIR $APP_HOME
 
 COPY Gemfile* "$APP_HOME"/
-RUN bundle install
+RUN bundle install && apk del .build
 COPY . "$APP_HOME"
 
 ENV COMMENT_SERVICE_HOST  comment
