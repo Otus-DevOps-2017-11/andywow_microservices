@@ -1,4 +1,4 @@
-FROM alpine:3.7
+FROM alpine:3.7 as builder
 
 RUN apk add --no-cache ruby ruby-json ruby-dev \
                                         gcc \
@@ -21,8 +21,8 @@ RUN apk add --no-cache ruby ruby-json
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . "$APP_HOME"
-COPY --from=0 /tmp/build/bundle/ruby/2.4.0/bin/* /usr/local/bin/
-COPY --from=0 /tmp/build/bundle/ruby/2.4.0 /usr/lib/ruby/gems/2.4.0
+COPY --from=builder /tmp/build/bundle/ruby/2.4.0/bin/* /usr/local/bin/
+COPY --from=builder /tmp/build/bundle/ruby/2.4.0 /usr/lib/ruby/gems/2.4.0
 
 ENV COMMENT_SERVICE_HOST=comment \
     COMMENT_SERVICE_PORT=9292 \
