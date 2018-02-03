@@ -50,6 +50,28 @@ docker run -d --network=reddit -p 9292:9292 --network-alias=ui \
 при старте приложение падает. `apk del .build` оставил, хотя, как я понял, он
 все равно удаляется при остановке контейнера сборки.
 
+Ну и наконец, решил поэкспериментировать с `BUILDON` - 5-я версия UI образа вышла
+в 36 Мб. Конечно я криво копировал библиотеки ruby, но в ruby я не силен, буду
+рад подсказке, как это делать правильно.
+
+Вообщем, что получилось в итоге
+
+```
+REPOSITORY            TAG                 IMAGE ID            CREATED             SIZE
+andywow/ui            5.0                 a877ea0ba920        9 minutes ago       36.4MB
+andywow/post          1.1                 4e0ab14c7285        5 hours ago         102MB
+andywow/comment       2.1                 b3dfb77f5638        5 hours ago         195MB
+andywow/comment       2.0                 97e29a6d3ba7        5 hours ago         195MB
+andywow/comment       1.1                 7f1ba95bdd63        5 hours ago         757MB
+andywow/ui            4.0                 8388c1b3d439        16 hours ago        203MB
+andywow/ui            4.1                 310cbd064525        16 hours ago        203MB
+andywow/ui            3.0                 92bb0cac58b7        17 hours ago        203MB
+andywow/ui            2.0                 fd6fe5c32d60        37 hours ago        391MB
+andywow/ui            1.0                 3874e2057405        38 hours ago        764MB
+andywow/comment       1.0                 6faf20076458        38 hours ago        757MB
+andywow/post          1.0                 2c2c364e9c99        38 hours ago        102MB
+```
+
 Запуск БД с подключенным volume:
 
 ```
