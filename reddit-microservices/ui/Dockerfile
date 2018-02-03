@@ -1,19 +1,28 @@
 FROM alpine:3.7
 
-RUN apk add --no-cache ruby ruby-json && \
-    apk add --no-cache --virtual .build ruby-dev \
+RUN apk add --no-cache ruby ruby-json ruby-dev \
                                         gcc \
                                         make \
                                         g++ \
                                         ruby-bundler
 
-ENV APP_HOME /app
-RUN mkdir "$APP_HOME"
-WORKDIR $APP_HOME
+RUN mkdir /tmp/build
+WORKDIR /tmp/build
 
-COPY Gemfile* "$APP_HOME"/
-RUN bundle install && apk del .build
+COPY Gemfile* /tmp/build/
+RUN bundle install --standalone
+
+###
+
+FROM alpine:3.7
+
+RUN apk add --no-cache ruby ruby-json
+
+ENV APP_HOME /app
+WORKDIR $APP_HOME
 COPY . "$APP_HOME"
+COPY --from=0 /tmp/build/bundle/ruby/2.4.0/bin/* /usr/local/bin/
+COPY --from=0 /tmp/build/bundle/ruby/2.4.0 /usr/lib/ruby/gems/2.4.0
 
 ENV COMMENT_SERVICE_HOST=comment \
     COMMENT_SERVICE_PORT=9292 \
