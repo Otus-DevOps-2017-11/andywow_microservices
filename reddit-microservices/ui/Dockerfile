@@ -1,10 +1,12 @@
 FROM alpine:3.7 as builder
 
-RUN apk add --no-cache ruby ruby-json ruby-dev \
-                                        gcc \
-                                        make \
-                                        g++ \
-                                        ruby-bundler
+RUN apk add --no-cache ruby \
+                       ruby-json \
+                       ruby-dev \
+                       gcc \
+                       make \
+                       g++ \
+                       ruby-bundler
 
 RUN mkdir /tmp/build
 WORKDIR /tmp/build
