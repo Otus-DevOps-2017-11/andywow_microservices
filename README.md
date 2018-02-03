@@ -1,3 +1,61 @@
+# Homework-17 Docker-4
+
+## Базовая часть
+```
+docker run --network none --rm -d --name net_test \
+        joffotron/docker-net-tools -c "sleep 100"
+docker run --network host --rm -d --name net_test \
+        joffotron/docker-net-tools -c "sleep 100"
+```
+
+- стр. 11 - выводы одинаковые, т.к. контейнер выполняется в сетевыи драйвером host
+
+- стр. 12 - запущен 1 контейнер nginx, т.к. `network = host`, а 80-й порт у нас один.
+
+- стр. 13 - если контейнер запускается с сетевым драйвером хоста, новый сетевой
+namespace не создается. Если в драйвером none, то создается новый namespace.
+
+```
+docker run -d --network=reddit --network-alias=post_db --network-alias=comment_db mongo:latest
+docker run -d --network=reddit --network-alias=post andywow/post:1.1
+docker run -d --network=reddit --network-alias=comment andywow/comment:2.1
+docker run -d --network=reddit -p 9292:9292 andywow/ui:5.3
+```
+
+создаем сети
+```
+docker network create back_net —subnet=10.0.2.0/24
+docker network create front_net --subnet=10.0.1.0/24
+```
+
+подключаем контейнеры к сетям
+```
+docker network connect front_net <container_id> --alias comment
+docker network connect front_net <container_id> --alias post
+```
+
+- на стр. 24 надо нашего пользователя `docker-user` добавить в группу `docker`
+
+- стр. 35 - файл с переменными окружения должен называться `.env`
+
+- стр. 36 - базовое имя проекта задается переменной окружения
+`COMPOSE_PROJECT_NAME` или флагом `-p` в вызове утилиты.
+
+## Задание *
+
+Предварительо скопируем требуемые файлы приложений на `docker-host`:
+
+```
+docker-machine scp -r ./post-py docker-user@docker-host:/apps
+docker-machine scp -r ./ui docker-user@docker-host:/apps
+docker-machine scp -r ./comment docker-user@docker-host:/apps
+```
+либо смонтировать удаленную директорию хоста командой `docker-machine mount`
+
+Далее монитруем volume-ы в каталоги `/app` контейнеров и изменяем строчку запуска
+директивой `command` (посмотреть, что она изменилась, можно командой
+  `docker-compose ps`)
+
 # Homework-16 Docker-3
 
 ## Базовая часть
