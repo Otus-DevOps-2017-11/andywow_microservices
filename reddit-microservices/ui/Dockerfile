@@ -20,7 +20,7 @@ FROM alpine:3.7
 
 RUN apk add --no-cache ruby ruby-json
 
-ENV APP_HOME /app
+ARG APP_HOME=/app
 WORKDIR $APP_HOME
 COPY . "$APP_HOME"
 COPY --from=builder /tmp/build/bundle/ruby/*/bin/* /usr/local/bin/

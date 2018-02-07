@@ -72,6 +72,15 @@ andywow/comment       1.0                 6faf20076458        38 hours ago      
 andywow/post          1.0                 2c2c364e9c99        38 hours ago        102MB
 ```
 
+UPD. добавил директиву `ARG` вместо `ENV` для использования переменной только на
+стадии сборки.
+
+```
+docker tag andywow/ui:5.4 andywow/ui:latest
+docker tag andywow/post:1.1 andywow/post:latest
+docker tag andywow/comment:2.1 andywow/comment:latest
+```
+
 Запуск БД с подключенным volume:
 
 ```
