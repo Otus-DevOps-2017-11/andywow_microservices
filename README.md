@@ -1,3 +1,94 @@
+# Homework-16 Docker-3
+
+## Базовая часть
+Начнем с Dockerfile для `post-py`. Смотрел на слайд, думал заменить ADD на COPY,
+а мне IDE это сама выдает во всплывающей подсказке ;) Плюс на слайде дубляж
+установки библиотек, которые уже есть в reauirements.txt.
+
+С Dockerfile для `comment` таже история.
+
+Восопльзовался linter-ом - куча полезных комментов
+- использование `--no-install-recommends` для уменьшения размера образа
+- удаление закшеированных пакетов
+
+Нашел ещё web-линтер https://www.fromlatest.io/ , если обычный нет возможности установить.
+
+После сравнений до и после оптимизаций линтераЮ разница в образах `comment` и `ui`
+получилась ~ 10 Мб.
+
+Сборка `ui` началась не с первого шага, т.к. несколько слоев уже были в кеше после
+сборки образа `comment`.
+
+```
+docker network create reddit
+docker run -d --network=reddit --network-alias=post_db \
+              --network-alias=comment_db mongo:latest
+docker run -d --network=reddit --network-alias=post andywow/post:1.0
+docker run -d --network=reddit --network-alias=comment andywow/comment:1.0
+docker run -d --network=reddit -p 9292:9292 --network-alias=ui andywow/ui:1.0
+```
+
+## Задание *
+
+```
+docker run -d --network=reddit --network-alias=docker_post_db \
+              --network-alias=docker_comment_db mongo:latest
+docker run -d --network=reddit --network-alias=docker_post \
+              -e POST_DATABASE_HOST=docker_post_db andywow/post:1.0
+docker run -d --network=reddit --network-alias=docker_comment \
+              -e COMMENT_DATABASE_HOST=docker_comment_db andywow/comment:1.0
+docker run -d --network=reddit -p 9292:9292 --network-alias=ui \
+              -e COMMENT_SERVICE_HOST=docker_comment \
+              -e POST_SERVICE_HOST=docker_post andywow/ui:1.0
+```
+
+Изменение сервиса `ui` - после смены базового образа на `ubuntu`, размер образа
+уменьшился до 391 Мб (Dockerfile переименовал в `Dockerfile_ubuntu`).
+
+Далее продолжил эксперимент с `alpine` получилось ужать образ до 203 Мб. Стоит
+добавить, что наверно ruby-json стоит включить в `Gemfile` для проекта, т.к. иначе
+при старте приложение падает. `apk del .build` оставил, хотя, как я понял, он
+все равно удаляется при остановке контейнера сборки.
+
+Ну и наконец, решил поэкспериментировать с `BUILDON` - 5-я версия UI образа вышла
+в 36 Мб. Конечно я криво копировал библиотеки ruby, но в ruby я не силен, буду
+рад подсказке, как это делать правильно.
+
+Вообщем, что получилось в итоге
+
+```
+REPOSITORY            TAG                 IMAGE ID            CREATED             SIZE
+andywow/ui            5.0                 a877ea0ba920        9 minutes ago       36.4MB
+andywow/post          1.1                 4e0ab14c7285        5 hours ago         102MB
+andywow/comment       2.1                 b3dfb77f5638        5 hours ago         195MB
+andywow/comment       2.0                 97e29a6d3ba7        5 hours ago         195MB
+andywow/comment       1.1                 7f1ba95bdd63        5 hours ago         757MB
+andywow/ui            4.0                 8388c1b3d439        16 hours ago        203MB
+andywow/ui            4.1                 310cbd064525        16 hours ago        203MB
+andywow/ui            3.0                 92bb0cac58b7        17 hours ago        203MB
+andywow/ui            2.0                 fd6fe5c32d60        37 hours ago        391MB
+andywow/ui            1.0                 3874e2057405        38 hours ago        764MB
+andywow/comment       1.0                 6faf20076458        38 hours ago        757MB
+andywow/post          1.0                 2c2c364e9c99        38 hours ago        102MB
+```
+
+UPD. добавил директиву `ARG` вместо `ENV` для использования переменной только на
+стадии сборки.
+
+```
+docker tag andywow/ui:5.4 andywow/ui:latest
+docker tag andywow/post:1.1 andywow/post:latest
+docker tag andywow/comment:2.1 andywow/comment:latest
+```
+
+Запуск БД с подключенным volume:
+
+```
+docker run -d --network=reddit --network-alias=docker_post_db \
+            -v reddit_db:/data/db
+            --network-alias=docker_comment_db mongo:latest
+```
+
 # Homework-15 docker-2
 
 Что было сделано:
@@ -76,3 +167,4 @@ docker rmi <image> # remove if no depencies
 информация о текущем статусе, железе, но присустсвует информация о контейнере,
 на базе которого собран это образ. Если проводить аналогию с виртуальными машинами,
 то контейнер - это VM, а image - шаблон VM.
+
