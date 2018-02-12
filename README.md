@@ -44,6 +44,13 @@ docker exec -it gitlab-runner gitlab-runner register
 git config --global credential.helper "cache --timeout=3600"
 ```
 
+## Задание *
+
+Интеграция c slack настроена по гайду в самом slack-е
+https://devops-team-otus.slack.com/services/B7LR04ZTN#service_setup
+Результат работы можно посмотреть в канале #andrey-susoev
+
+
 # Homework-17 Docker-4
 
 ## Базовая часть
