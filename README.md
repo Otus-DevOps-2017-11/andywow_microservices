@@ -1,3 +1,49 @@
+# Homework-19 Docker-6
+
+Создаем правило в firewall-е для разрешения входящих соединений на порта 80 и 443
+с тегом `gitlabci`.
+
+UPD. добавил еще одно правило для коннекта на 2222-й порт.
+
+Создаем gitlab хост
+```
+docker-machine create --driver google -google-project docker-193319  \
+    --google-zone europe-west1-b --google-machine-type n1-standard-1 \
+    --google-disk-size "100" --google-tags gitlabci --google-machine-image \
+    $(gcloud compute images list --filter ubuntu-1604-lts --uri) \
+    gitlab-ci
+```
+смотрим, что хост появился `docker-machine ls`
+
+далаем его текущим `eval $(docker-machine env gitlab-ci)`
+
+Docker на нашем сервере появился автоматически, т.к. установку делали с помощью
+`docker-machine`. Docker-compose пришлось доустановить.
+
+Подключаемся по ssh к машине gitlabci `docker-machine ssh gitlabci`.
+
+Добавляем текущего пользователя в группу `docker`. Создаем директории и файл
+`docker-compose.yml`.
+
+Запускаем наш контейнер `docker-compose up -d`.
+
+Запускаем gitlab runner:
+```
+docker run -d --name gitlab-runner --restart always \
+    -v /srv/gitlab-runner/config:/etc/gitlab-runner \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    gitlab/gitlab-runner:latest
+```
+Регистриуем gitlab runner:
+```
+docker exec -it gitlab-runner gitlab-runner register
+```
+
+Для сохранения пароля к http запросам git-а можно использовать credential helper:
+```
+git config --global credential.helper "cache --timeout=3600"
+```
+
 # Homework-17 Docker-4
 
 ## Базовая часть
