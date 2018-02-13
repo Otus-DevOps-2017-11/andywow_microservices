@@ -59,4 +59,3 @@ production:
     - echo 'Deploy'
   environment:
     name: production
-
