@@ -1,3 +1,160 @@
+# Homework-19 Docker-6
+
+Создаем правило в firewall-е для разрешения входящих соединений на порта 80 и 443
+с тегом `gitlabci`.
+
+UPD. добавил еще одно правило для коннекта на 2222-й порт.
+
+Создаем gitlab хост
+```
+docker-machine create --driver google -google-project docker-193319  \
+    --google-zone europe-west1-b --google-machine-type n1-standard-1 \
+    --google-disk-size "100" --google-tags gitlabci --google-machine-image \
+    $(gcloud compute images list --filter ubuntu-1604-lts --uri) \
+    gitlab-ci
+```
+смотрим, что хост появился `docker-machine ls`
+
+далаем его текущим `eval $(docker-machine env gitlab-ci)`
+
+Docker на нашем сервере появился автоматически, т.к. установку делали с помощью
+`docker-machine`. Docker-compose пришлось доустановить.
+
+Подключаемся по ssh к машине gitlabci `docker-machine ssh gitlabci`.
+
+Добавляем текущего пользователя в группу `docker`. Создаем директории и файл
+`docker-compose.yml`.
+
+Запускаем наш контейнер `docker-compose up -d`.
+
+Запускаем gitlab runner:
+```
+docker run -d --name gitlab-runner --restart always \
+    -v /srv/gitlab-runner/config:/etc/gitlab-runner \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    gitlab/gitlab-runner:latest
+```
+Регистриуем gitlab runner:
+```
+docker exec -it gitlab-runner gitlab-runner register
+```
+
+Для сохранения пароля к http запросам git-а можно использовать credential helper:
+```
+git config --global credential.helper "cache --timeout=3600"
+```
+
+## Задание *
+
+Интеграция c slack настроена по гайду в самом slack-е
+https://devops-team-otus.slack.com/services/B7LR04ZTN#service_setup
+Результат работы можно посмотреть в канале #andrey-susoev
+
+Для масштабирования оптимальным вариантом мне показалось использование
+autoscale runner-а, появившегося в gitlab 11.
+
+Предварительно в GCE необходимо создать сервисный аккаунт, скачать json-файл
+авторизации, залить его на docker-хост (gitlab-ci) машину.
+
+Я следовал этим гайдам:
+- https://docs.gitlab.com/runner/install/autoscaling.html
+- https://docs.gitlab.com/runner/configuration/autoscale.html
+
+Дописал под него docker-compose файл:
+```
+web:
+  image: 'gitlab/gitlab-ce:latest'
+  restart: always
+  hostname: 'gitlab.example.com'
+  environment:
+    GITLAB_OMNIBUS_CONFIG: |
+      external_url 'http://35.195.210.5'
+  ports:
+    - '80:80'
+    - '443:443'
+    - '2222:22'
+  volumes:
+    - '/srv/gitlab/config:/etc/gitlab'
+    - '/srv/gitlab/logs:/var/log/gitlab'
+    - '/srv/gitlab/data:/var/opt/gitlab'
+
+registry:
+  image: registry:2
+  restart: always
+  environment:
+    REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+  ports:
+    - '6000:5000'
+
+cache:
+  image: minio/minio:latest
+  restart: always
+  ports:
+    - '9005:9000'
+  volumes:
+    - '/.minio:/root/.minio'
+    - '/export:/export'
+  command: ["server", "/export"]
+
+runner:
+  image: 'gitlab/gitlab-runner:latest'
+  restart: always
+  environment:
+    - GOOGLE_APPLICATION_CREDENTIALS=/etc/gitlab-runner/gce.json
+  volumes:
+    - '/srv/gitlab/runnercfg:/etc/gitlab-runner'
+```
+
+После запуска runner-а, его необходимо проинициализировать, как в базовой части ДЗ,
+затем выключить и полученный конфигурационный файл отредактировать и запустить снова.
+
+Сам конфиг runner-а:
+```
+concurrent = 5
+check_interval = 0
+
+[[runners]]
+  name = "auto-scale-runner"
+  url = "http://GITLAB-IP"
+  token = "PRIVATE_TOKEN"
+  executor = "docker+machine"
+  [runners.docker]
+    tls_verify = false
+    image = "alpine:latest"
+    privileged = false
+    disable_cache = false
+    volumes = ["/cache"]
+    shm_size = 0
+  [runners.cache]
+    Type = "s3"
+    ServerAddress = "GITLAB-IP:9005"
+    AccessKey = "AccessKey"
+    SecretKey = "SecretKey"
+    BucketName = "runner"
+    Insecure = true
+  [runners.machine]
+    IdleCount = 0
+    IdleTime = 300
+    MachineDriver = "google"
+    MachineName = "gitlab-runner-%s"
+    MachineOptions = [
+      "google-project=docker-XXXXXX",
+      "google-machine-type=g1-small",
+      "google-machine-image=ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20180126",
+      "google-tags=default-allow-ssh",
+      "google-preemptible=true",
+      "google-zone=europe-west1-b",
+      "google-use-internal-ip=true"
+    ]
+    OffPeakTimezone = ""
+    OffPeakIdleCount = 0
+    OffPeakIdleTime = 0
+```
+
+Конфиг, конечно, не оптимальный. Выставлял маленький тайм-аут для того, чтобы
+убедиться, что VM удаляются. Ну и надо было ограничить количество VM, т.к. в
+одном регионе GCE нельзя больше 8 CPU использовать.
+
 # Homework-17 Docker-4
 
 ## Базовая часть
