@@ -79,7 +79,6 @@ create_env:
 
     - echo Deploying docker image
     - eval $(./docker-machine -s ${CERT_PATH} env --shell sh ${VM_NAME})
-    - ./docker-machine -s ${CERT_PATH} env --shell sh ${VM_NAME}
 
     - docker-compose up -d --force-recreate
     - docker-compose ps
