@@ -11,9 +11,8 @@ stages:
   - production
 
 variables:
-  CACHE_KEY: "gce-${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}"
-  CACHE_DIR: "gce"
-  DEBIAN_FRONTEND: noninteractive
+  CACHE_KEY: "gce-${CI_COMMIT_REF_SLUG}"
+  CERT_PATH: certs
   DOCKER_MACHINE_VERSION: '0.13.0'
   DOCKER_REPO: 'andywow/gitlabhomework2'
   DOCKER_IMAGE_LOCAL: "reddit:${CI_COMMIT_REF_SLUG}"
@@ -22,8 +21,8 @@ variables:
   GCE_IMAGE_PATH: 'ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20180126'
   GCE_ZONE: 'europe-west1-c'
   GITLAB_URL: 'http://35.195.216.46'
-  GOOGLE_APPLICATION_CREDENTIALS: "${CACHE_DIR}/gce.json"
-  VM_NAME: homework-example2-${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}
+  GOOGLE_APPLICATION_CREDENTIALS: gce.json
+  VM_NAME: homework-example2-${CI_COMMIT_REF_SLUG}
 
 build_job:
   stage: build
@@ -47,14 +46,15 @@ create_env:
   stage: review
   cache:
     key: ${CACHE_KEY}
-    paths:
-      - ${CACHE_DIR}
+    untracked: true
   script:
     - echo "Creating env for ${CI_ENVIRONMENT_SLUG}"
-    - mkdir ${CACHE_DIR}
 
     - echo Installing utilities
-    - apk update && apk add ca-certificates curl jq
+    - apk update && apk add ca-certificates curl jq py-pip
+
+    - echo Installing docker compose
+    - pip install docker-compose
 
     - echo Getting env id number
     - URL_REQ_ENV="${GITLAB_URL}/api/v4/projects/${CI_PROJECT_ID}/environments"
@@ -64,28 +64,28 @@ create_env:
     - CI_ENVIRONMENT_ID=$(echo ${JSON_REQ_ENV_ID} | jq ".[] | select(.project.name==\"${CI_PROJECT_NAME}\" and .name==\"branch/${CI_COMMIT_REF_SLUG}\") | .id")
     #- echo ${CI_ENVIRONMENT_ID}
 
-    - echo Downloading  docker-machine binary
+    - echo Downloading docker-machine binary
     - curl -s -L https://github.com/docker/machine/releases/download/v${DOCKER_MACHINE_VERSION}/docker-machine-`uname -s`-`uname -m` > /tmp/docker-machine
-    - install /tmp/docker-machine ${CACHE_DIR}/docker-machine
+    - install /tmp/docker-machine docker-machine
 
-    - echo "${GCE_KEY}" > ${CACHE_DIR}/gce.base64 && base64 -d ${CACHE_DIR}/gce.base64 >${GOOGLE_APPLICATION_CREDENTIALS}
+    - echo "${GCE_KEY}" > gce.base64 && base64 -d gce.base64 >${GOOGLE_APPLICATION_CREDENTIALS}
     - echo Creating VM
-    - ${CACHE_DIR}/docker-machine create --driver google --google-project ${GCE_PROJECT_ID}
+    - ./docker-machine -s ${CERT_PATH} status ${VM_NAME} ||
+      ./docker-machine -s ${CERT_PATH} create --driver google --google-project ${GCE_PROJECT_ID}
         --google-zone ${GCE_ZONE} --google-machine-type g1-small
         --google-tags gitlab-deploy-agent
         --google-machine-image ${GCE_IMAGE_PATH}
         ${VM_NAME}
-    - cp -R /root/.docker ${CACHE_DIR}/.docker
 
     - echo Deploying docker image
-    - eval $(${CACHE_DIR}/docker-machine env --shell sh ${VM_NAME})
-    - docker network create test
-    - docker run -dt --rm --network=test --name db mongo:latest
-    - docker run -dt --rm --network=test --name puma -p 80:9292 -e "DATABASE_URL=db" ${DOCKER_IMAGE_REMOTE}
-    - docker ps
+    - eval $(./docker-machine -s ${CERT_PATH} env --shell sh ${VM_NAME})
+    - ./docker-machine -s ${CERT_PATH} env --shell sh ${VM_NAME}
+
+    - docker-compose up -d --force-recreate
+    - docker-compose ps
 
     - echo Setting new env URL
-    - ENV_URL="$(${CACHE_DIR}/docker-machine ip ${VM_NAME})"
+    - ENV_URL="$(./docker-machine -s ${CERT_PATH} ip ${VM_NAME})"
     #- echo $ENV_URL
     #- echo curl --request PUT --data "external_url=http://${ENV_URL}" --header "${AUTH_TOKEN}" "${URL_REQ_ENV}/${CI_ENVIRONMENT_ID}"
     - curl -s --request PUT --data "external_url=http://${ENV_URL}" --header "${AUTH_TOKEN}" "${URL_REQ_ENV}/${CI_ENVIRONMENT_ID}"
@@ -102,13 +102,11 @@ destroy_env:
   stage: review
   cache:
     key: ${CACHE_KEY}
-    paths:
-      - ${CACHE_DIR}
+    untracked: true
   script:
     - apk update && apk add ca-certificates
     - echo "Destroying env for ${CI_ENVIRONMENT_SLUG}"
-    - mv ${CACHE_DIR}/.docker /root/.docker
-    - ${CACHE_DIR}/docker-machine rm -y ${VM_NAME}
+    - ./docker-machine -s ${CERT_PATH} rm -y ${VM_NAME}
   when: manual
   environment:
     name: branch/${CI_COMMIT_REF_SLUG}
