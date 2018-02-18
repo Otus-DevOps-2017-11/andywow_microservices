@@ -85,7 +85,7 @@ create_env:
     - docker ps
 
     - echo Setting new env URL
-    - ENV_URL="$(${CACHE_DIR}/docker-machine ls --format {{.URL}} | awk -F '[/:]' '{print $4}')"
+    - ENV_URL="$(${CACHE_DIR}/docker-machine ip ${VM_NAME})"
     #- echo $ENV_URL
     #- echo curl --request PUT --data "external_url=http://${ENV_URL}" --header "${AUTH_TOKEN}" "${URL_REQ_ENV}/${CI_ENVIRONMENT_ID}"
     - curl -s --request PUT --data "external_url=http://${ENV_URL}" --header "${AUTH_TOKEN}" "${URL_REQ_ENV}/${CI_ENVIRONMENT_ID}"
