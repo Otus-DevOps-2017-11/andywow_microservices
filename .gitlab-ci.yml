@@ -105,7 +105,7 @@ destroy_env:
     paths:
       - ${CACHE_DIR}
   script:
-    - apt update && apt install -y ca-certificates
+    - apk update && apk add ca-certificates
     - echo "Destroying env for ${CI_ENVIRONMENT_SLUG}"
     - mv ${CACHE_DIR}/.docker /root/.docker
     - ${CACHE_DIR}/docker-machine rm -y ${VM_NAME}
