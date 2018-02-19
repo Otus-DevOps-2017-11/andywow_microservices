@@ -26,6 +26,13 @@ services:
           - comment_db
       mgmt_net:
 
+  mongodb-exporter:
+    image: ${DOCKER_USERNAME}/mongodb-exporter:${MONGODB_EXPORTER_VERSION}
+    environment:
+      - MONGODB_URL='mongodb://172.21.0.4:27017'
+    networks:
+      mgmt_net:
+
   ui:
     image: ${DOCKER_USERNAME}/ui:${UI_VERSION}
     ports:

@@ -1,5 +1,7 @@
 build_info.txt
 
+monitoring/mongodb_exporter/mongodb_exporter
+
 ## python specific
 *.pyc
 
