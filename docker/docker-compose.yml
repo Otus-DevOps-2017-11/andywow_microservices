@@ -13,7 +13,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
     networks:
-      mgmt_net:
+      back_net:
 
   post_db:
     image: mongo:3.2
@@ -24,14 +24,13 @@ services:
         aliases:
           - post_db
           - comment_db
-      mgmt_net:
 
   mongodb-exporter:
     image: ${DOCKER_USERNAME}/mongodb-exporter:${MONGODB_EXPORTER_VERSION}
-    environment:
-      - MONGODB_URL='mongodb://post_db:27017'
+    command: ["-mongodb.uri", "post_db"]
     networks:
-      mgmt_net:
+      back_net:
+      front_net:
 
   ui:
     image: ${DOCKER_USERNAME}/ui:${UI_VERSION}
@@ -39,7 +38,6 @@ services:
       - ${UI_PORT}:${UI_PORT}/tcp
     networks:
       front_net:
-      mgmt_net:
 
   post:
     image: ${DOCKER_USERNAME}/post:${POST_VERSION}
@@ -48,7 +46,6 @@ services:
       front_net:
         aliases:
           - post
-      mgmt_net:
 
   comment:
     image: ${DOCKER_USERNAME}/comment:${COMMENT_VERSION}
@@ -57,15 +54,20 @@ services:
         aliases:
           - comment
       back_net:
-      mgmt_net:
+
+  blackbox-exporter:
+    image: ${DOCKER_USERNAME}/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION}
+    networks:
+      back_net:
+      front_net:
 
   prometheus:
     image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION}
     ports:
       - '9090:9090'
     networks:
+      back_net:
       front_net:
-      mgmt_net:
 
 volumes:
   post_db:
@@ -73,4 +75,3 @@ volumes:
 networks:
   front_net:
   back_net:
-  mgmt_net:
