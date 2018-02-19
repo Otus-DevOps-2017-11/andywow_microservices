@@ -10,32 +10,41 @@ services:
         aliases:
           - post_db
           - comment_db
+      mgmt_net:
 
   ui:
-    build: ./ui
     image: ${DOCKER_USERNAME}/ui:${UI_VERSION}
     ports:
       - ${UI_PORT}:${UI_PORT}/tcp
     networks:
       front_net:
+      mgmt_net:
 
   post:
-    build: ./post-py
     image: ${DOCKER_USERNAME}/post:${POST_VERSION}
     networks:
       back_net:
       front_net:
         aliases:
           - post
+      mgmt_net:
 
   comment:
-    build: ./comment
     image: ${DOCKER_USERNAME}/comment:${COMMENT_VERSION}
     networks:
       front_net:
         aliases:
           - comment
       back_net:
+      mgmt_net:
+
+  prometheus:
+    image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION}
+    ports:
+      - '9090:9090'
+    networks:
+      front_net:
+      mgmt_net:
 
 volumes:
   post_db:
@@ -43,3 +52,4 @@ volumes:
 networks:
   front_net:
   back_net:
+  mgmt_net:
