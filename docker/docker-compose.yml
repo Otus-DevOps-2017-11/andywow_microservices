@@ -29,7 +29,7 @@ services:
   mongodb-exporter:
     image: ${DOCKER_USERNAME}/mongodb-exporter:${MONGODB_EXPORTER_VERSION}
     environment:
-      - MONGODB_URL='mongodb://172.21.0.4:27017'
+      - MONGODB_URL='mongodb://post_db:27017'
     networks:
       mgmt_net:
 
