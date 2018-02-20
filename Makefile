@@ -1,11 +1,11 @@
 USER_NAME ?= yourname
 
 IMAGE_PATHS ?=	./src/comment \
-								./src/post-py \
-								./src/ui \
-								./monitoring/blackbox_exporter \
-								./monitoring/mongodb_exporter \
-								./monitoring/prometheus
+		./src/post-py \
+		./src/ui \
+		./monitoring/blackbox_exporter \
+		./monitoring/mongodb_exporter \
+		./monitoring/prometheus
 
 .PHONY: build pull push remove start stop
 
