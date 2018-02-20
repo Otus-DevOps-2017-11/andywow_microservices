@@ -36,9 +36,9 @@ Blackbox-экспортер также настроен.
 
 Приложение `prometheus` собирает все метрики из `management` сети с `exporter`-ов.
 
-Makefile сделан. С `targets`: ``[build, push, pull, remove, start, stop]`
+Makefile сделан. С `targets`: `[build, push, pull, remove, start, stop]`
 
-
+Можно билдить отдельные образы : `make -e IMAGE_PATHS=./src/comment`
 
 # Homework-20 Docker-7
 
