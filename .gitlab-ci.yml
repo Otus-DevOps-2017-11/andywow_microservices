@@ -1,35 +1,133 @@
-image: ruby:2.4.2
+image: docker:latest
+
+services:
+  - docker:dind
 
 stages:
   - build
   - test
-  - deploy
+  - review
+  - stage
+  - production
 
 variables:
-  DATABASE_URL: 'mongodb://mongo/user_posts'
-
-before_script:
-  - cd reddit
-  - bundle install
+  CACHE_KEY: "gce-${CI_COMMIT_REF_SLUG}"
+  CERT_PATH: certs
+  DOCKER_MACHINE_VERSION: '0.13.0'
+  DOCKER_REPO: 'andywow/gitlabhomework2'
+  DOCKER_IMAGE_LOCAL: "reddit:${CI_COMMIT_REF_SLUG}"
+  DOCKER_IMAGE_REMOTE: "${DOCKER_REPO}:${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}"
+  GCE_PROJECT_ID: 'docker-193319'
+  GCE_IMAGE_PATH: 'ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20180126'
+  GCE_ZONE: 'europe-west1-c'
+  GITLAB_URL: 'http://35.195.216.46'
+  GOOGLE_APPLICATION_CREDENTIALS: gce.json
+  VM_NAME: homework-example2-${CI_COMMIT_REF_SLUG}
 
 build_job:
   stage: build
   script:
-    - echo 'Building'
+    - echo 'Building docker image'
+    - docker build -t ${DOCKER_IMAGE_LOCAL} ./reddit
+    - docker image tag ${DOCKER_IMAGE_LOCAL} ${DOCKER_IMAGE_REMOTE}
+    - docker login -u ${HUB_LOGIN} -p ${HUB_PASSWORD}
+    - docker push ${DOCKER_IMAGE_REMOTE}
 
 test_unit_job:
   stage: test
-  services:
-    - mongo:latest
+  image:
+    ${DOCKER_IMAGE_REMOTE}
   script:
+    - cd /app
+    - gem install rack-test test-unit --no-ri --no-rdoc
     - ruby simpletest.rb
 
-test_integration_job:
-  stage: test
+create_env:
+  stage: review
+  cache:
+    key: ${CACHE_KEY}
+    untracked: true
   script:
-    - echo 'Testing 2'
+    - echo "Creating env for ${CI_ENVIRONMENT_SLUG}"
 
-deploy_job:
-  stage: deploy
+    - echo Installing utilities
+    - apk update && apk add ca-certificates curl jq py-pip
+
+    - echo Installing docker compose
+    - pip install docker-compose
+
+    - echo Getting env id number
+    - URL_REQ_ENV="${GITLAB_URL}/api/v4/projects/${CI_PROJECT_ID}/environments"
+    - AUTH_TOKEN="PRIVATE-TOKEN:${GITLAB_TOKEN}"
+    - JSON_REQ_ENV_ID=$(curl -s --header "${AUTH_TOKEN}" "${URL_REQ_ENV}")
+    #- echo $JSON_REQ_ENV_ID
+    - CI_ENVIRONMENT_ID=$(echo ${JSON_REQ_ENV_ID} | jq ".[] | select(.project.name==\"${CI_PROJECT_NAME}\" and .name==\"branch/${CI_COMMIT_REF_SLUG}\") | .id")
+    #- echo ${CI_ENVIRONMENT_ID}
+
+    - echo Downloading docker-machine binary
+    - curl -s -L https://github.com/docker/machine/releases/download/v${DOCKER_MACHINE_VERSION}/docker-machine-`uname -s`-`uname -m` > /tmp/docker-machine
+    - install /tmp/docker-machine docker-machine
+
+    - echo "${GCE_KEY}" > gce.base64 && base64 -d gce.base64 >${GOOGLE_APPLICATION_CREDENTIALS}
+    - echo Creating VM
+    - ./docker-machine -s ${CERT_PATH} status ${VM_NAME} ||
+      ./docker-machine -s ${CERT_PATH} create --driver google --google-project ${GCE_PROJECT_ID}
+        --google-zone ${GCE_ZONE} --google-machine-type g1-small
+        --google-tags gitlab-deploy-agent
+        --google-machine-image ${GCE_IMAGE_PATH}
+        ${VM_NAME}
+
+    - echo Deploying docker image
+    - eval $(./docker-machine -s ${CERT_PATH} env --shell sh ${VM_NAME})
+
+    - docker-compose up -d --force-recreate
+    - docker-compose ps
+
+    - echo Setting new env URL
+    - ENV_URL="$(./docker-machine -s ${CERT_PATH} ip ${VM_NAME})"
+    #- echo $ENV_URL
+    #- echo curl --request PUT --data "external_url=http://${ENV_URL}" --header "${AUTH_TOKEN}" "${URL_REQ_ENV}/${CI_ENVIRONMENT_ID}"
+    - curl -s --request PUT --data "external_url=http://${ENV_URL}" --header "${AUTH_TOKEN}" "${URL_REQ_ENV}/${CI_ENVIRONMENT_ID}"
+
+  environment:
+    name: branch/${CI_COMMIT_REF_SLUG}
+    on_stop: destroy_env
+  only:
+    - branches
+  except:
+    - master
+
+destroy_env:
+  stage: review
+  cache:
+    key: ${CACHE_KEY}
+    untracked: true
+  script:
+    - apk update && apk add ca-certificates
+    - echo "Destroying env for ${CI_ENVIRONMENT_SLUG}"
+    - ./docker-machine -s ${CERT_PATH} rm -y ${VM_NAME}
+  when: manual
+  environment:
+    name: branch/${CI_COMMIT_REF_SLUG}
+    action: stop
+
+staging:
+  stage: stage
+  when: manual
+  only:
+    - /^\d+\.\d+.\d+/
   script:
     - echo 'Deploy'
+  environment:
+    name: stage
+    url: https://beta.example.com
+
+production:
+  stage: production
+  when: manual
+  only:
+    - /^\d+\.\d+.\d+/
+  script:
+    - echo 'Deploy'
+  environment:
+    name: production

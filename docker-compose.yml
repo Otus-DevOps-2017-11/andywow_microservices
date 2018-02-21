@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+  db:
+    image: mongo:latest
+    networks:
+      test:
+  puma:
+    image: ${DOCKER_IMAGE_REMOTE}
+    environment:
+      - DATABASE_URL=db
+    ports:
+      - 80:9292/tcp
+    networks:
+      test:
+
+networks:
+  test:
