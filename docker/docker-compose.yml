@@ -32,7 +32,7 @@ services:
           - post_db-dmz
 
   mongodb-exporter:
-    image: ${DOCKER_USERNAME}/mongodb-exporter:${MONGODB_EXPORTER_VERSION}
+    image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION}
     command: ["-mongodb.uri", "post_db-back"]
     networks:
       back_net:
@@ -76,7 +76,7 @@ services:
           - comment-dmz
 
   blackbox-exporter:
-    image: ${DOCKER_USERNAME}/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION}
+    image: ${DOCKER_USERNAME}/blackbox_exporter:${BLACKBOX_EXPORTER_VERSION}
     command:
       - '--config.file=/etc/blackbox_exporter/config.yml'
       - '--web.listen-address=blackbox-exporter-dmz:9115'
