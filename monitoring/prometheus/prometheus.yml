@@ -54,3 +54,13 @@ scrape_configs:
     static_configs:
       - targets:
         - 'cadvisor-dmz:8080'
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets:
+          - "alertmanager-dmz:9093"
