@@ -77,6 +77,17 @@ services:
         aliases:
           - prometheus-dmz
 
+  alertmanager:
+    image: ${DOCKER_USERNAME}/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+    ports:
+      - 9093:9093
+    networks:
+      mgmt_net:
+        aliases:
+          - alertmanager-dmz
+
 volumes:
   grafana_data:
 
