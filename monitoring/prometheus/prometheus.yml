@@ -44,3 +44,8 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter-dmz:9115
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:
+        - 'cadvisor-dmz:8080'

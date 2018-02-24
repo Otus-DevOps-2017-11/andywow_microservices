@@ -1,0 +1,65 @@
+version: '3.3'
+services:
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    user: root
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    networks:
+      mgmt_net:
+        aliases:
+          - node-exporter-dmz
+
+  mongodb-exporter:
+    image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION}
+    command: ["-mongodb.uri", "post_db-back"]
+    networks:
+      back_net:
+      mgmt_net:
+        aliases:
+          - mongodb-exporter-dmz
+
+  blackbox-exporter:
+    image: ${DOCKER_USERNAME}/blackbox_exporter:${BLACKBOX_EXPORTER_VERSION}
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+      - '--web.listen-address=blackbox-exporter-dmz:9115'
+    networks:
+      front_net:
+      mgmt_net:
+        aliases:
+          - blackbox-exporter-dmz
+
+  cadvisor:
+    image: google/cadvisor:v0.29.0
+    volumes:
+      - '/:/rootfs:ro'
+      - '/var/run:/var/run:rw'
+      - '/sys:/sys:ro'
+      - '/var/lib/docker/:/var/lib/docker:ro'
+    ports:
+      - '8080:8080'
+    networks:
+      mgmt_net:
+        aliases:
+          - cadvisor-dmz
+
+  prometheus:
+    image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION}
+    ports:
+      - '9090:9090'
+    networks:
+      front_net:
+      mgmt_net:
+
+networks:
+  front_net:
+  back_net:
+  mgmt_net:
