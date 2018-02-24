@@ -1,3 +1,5 @@
+include ./docker/.env
+
 USER_NAME ?= yourname
 
 IMAGE_PATHS ?=	./src/comment \
@@ -5,9 +7,14 @@ IMAGE_PATHS ?=	./src/comment \
 		./src/ui \
 		./monitoring/blackbox_exporter \
 		./monitoring/mongodb_exporter \
-		./monitoring/prometheus
+		./monitoring/prometheus \
+		./monitoring/alertmanager
 
-.PHONY: build pull push remove start stop
+NETWORKS ?= front_net back_net mgmt_net
+
+.PHONY: build pull push remove \
+	start-network start-service start-monitor start \
+	stop-network stop-service stop-monitor stop
 
 define get_image_name
 	${USER_NAME}/$(lastword $(subst /, " ", "$1"))
@@ -40,10 +47,41 @@ remove:
 		docker rmi $(call get_image_name,${IMAGE_PATH}); \
 	)
 
-start:
+start-network:
+	@echo "Starting network"
+	@$(foreach NETWORK, $(NETWORKS), \
+		docker network inspect ${NETWORK} 1>/dev/null 2>&1 || \
+		docker network create ${NETWORK}; \
+	)
+
+start-service:
+	@echo "Starting services"
 	@cd ${CURDIR}/docker && docker-compose up -d
 
-stop:
+
+start-monitor:
+	@echo "Starting monitor services"
+	@cd ${CURDIR}/docker && docker-compose \
+		-f docker-compose-monitoring.yml up -d
+
+start: start-network start-service start-monitor
+
+stop-network:
+	@echo "Stopping network"
+	@$(foreach NETWORK, $(NETWORKS), \
+		docker network inspect ${NETWORK} 1>/dev/null 2>&1 && \
+		docker network rm ${NETWORK} || \
+		true; \
+	)
+
+stop-service:
+	@echo "Stopping services"
 	@cd ${CURDIR}/docker && docker-compose down
+
+stop-monitor:
+	@echo "Stopping monitor services"
+	@cd ${CURDIR}/docker && docker-compose -f docker-compose-monitoring.yml down
+
+stop: stop-monitor stop-service stop-network
 
 default: build

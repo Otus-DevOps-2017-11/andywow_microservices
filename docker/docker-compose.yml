@@ -55,5 +55,8 @@ volumes:
 
 networks:
   front_net:
+    external: true
   back_net:
+    external: true
   mgmt_net:
+    external: true
