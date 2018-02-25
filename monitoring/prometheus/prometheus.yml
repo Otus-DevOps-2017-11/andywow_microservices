@@ -59,6 +59,10 @@ scrape_configs:
     static_configs:
       - targets: ['172.17.0.1:9323']
 
+  - job_name: 'stackdriver'
+    static_configs:
+      - targets: ['stackdriver-exporter-dmz:9255']
+
 rule_files:
   - "alerts.yml"
 

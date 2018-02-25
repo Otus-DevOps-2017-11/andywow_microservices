@@ -51,6 +51,20 @@ services:
         aliases:
           - cadvisor-dmz
 
+  stackdriver-exporter:
+    image: frodenas/stackdriver-exporter:latest
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/tmp/stackdriver.json
+      - STACKDRIVER_EXPORTER_GOOGLE_PROJECT_ID=docker-193319
+      - STACKDRIVER_EXPORTER_MONITORING_METRICS_TYPE_PREFIXES=compute.googleapis.com/instance/cpu,compute.googleapis.com/instance/disk
+      - STACKDRIVER_EXPORTER_WEB_LISTEN_ADDRESS=stackdriver-exporter-dmz:9255
+    volumes:
+      - '/tmp/stackdriver.json:/tmp/stackdriver.json'
+    networks:
+      mgmt_net:
+        aliases:
+          - stackdriver-exporter-dmz
+
   grafana:
     image: ${DOCKER_USERNAME}/grafana:${GRAFANA_VERSION}
     volumes:
