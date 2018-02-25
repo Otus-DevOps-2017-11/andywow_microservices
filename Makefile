@@ -5,7 +5,6 @@ USER_NAME ?= yourname
 IMAGE_PATHS ?=	./src/comment \
 		./src/post-py \
 		./src/ui \
-		./monitoring/blackbox_exporter \
 		./monitoring/mongodb_exporter \
 		./monitoring/prometheus \
 		./monitoring/alertmanager \

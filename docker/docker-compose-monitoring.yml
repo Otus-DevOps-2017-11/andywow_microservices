@@ -27,7 +27,7 @@ services:
           - mongodb-exporter-dmz
 
   blackbox-exporter:
-    image: ${DOCKER_USERNAME}/blackbox_exporter:${BLACKBOX_EXPORTER_VERSION}
+    image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION}
     command:
       - '--config.file=/etc/blackbox_exporter/config.yml'
       - '--web.listen-address=blackbox-exporter-dmz:9115'
