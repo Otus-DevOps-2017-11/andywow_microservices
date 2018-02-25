@@ -32,6 +32,13 @@ build:
 		cd ${CURDIR}; \
 	)
 
+logs:
+	@cd ${CURDIR}/docker && docker-compose \
+		-f docker-compose.yml \
+		-f docker-compose-monitoring.yml \
+		logs ${CONTAINER}
+
+
 push:
 	@$(foreach IMAGE_PATH, $(IMAGE_PATHS), \
 		docker push $(call get_image_name,${IMAGE_PATH}); \
