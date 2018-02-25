@@ -7,15 +7,11 @@ global:
   smtp_auth_password: 'otusdevops123'
 
 route:
-  receiver: 'slack-notifications'
-  routes:
-    - receiver: 'email-notifications'
+  receiver: 'all-notifications'
 
 receivers:
-  - name: 'slack-notifications'
+  - name: 'all-notifications'
     slack_configs:
       - channel: '#andrey-susoev'
-
-  - name: 'email-notifications'
     email_configs:
     - to: 'andywowotus@gmail.com'
