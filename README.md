@@ -1,4 +1,4 @@
-# Homework-21 Monitoring-2
+# Homework-23 Monitoring-2
 
 ## Базовая часть
 
@@ -16,7 +16,33 @@
 
 URL dockerhub: https://hub.docker.com/r/andywow
 
+## Задание *
 
+`Makefile` доработан.
+
+Забор метрик из `Dockerfile`-а:
+
+На docker-хосте `vm1` создан файл `/etc/docker/daemon.json`:
+```
+{
+  "metrics-addr" : "0.0.0.0:9323",
+  "experimental" : true
+}
+```
+docker-демон был перезапущен.
+
+После этого добавлена запись о docker-хосте в `prometheus.yml` и пересобран
+образ `prometheus`.
+
+На сайте prometheus нашел 2 утилиты для валидации конфигов `prometheus` и
+`alertmanager`:
+
+```
+go get github.com/prometheus/prometheus/cmd/promtool
+go get github.com/prometheus/alertmanager/cmd/amtool
+```
+
+Алертинг по email-у настроен.
 
 
 # Homework-21 Monitoring-1
