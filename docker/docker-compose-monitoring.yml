@@ -52,7 +52,7 @@ services:
           - cadvisor-dmz
 
   grafana:
-    image: grafana/grafana:5.0.0-beta4
+    image: ${DOCKER_USERNAME}/grafana:${GRAFANA_VERSION}
     volumes:
       - grafana_data:/var/lib/grafana
     environment:

@@ -8,7 +8,8 @@ IMAGE_PATHS ?=	./src/comment \
 		./monitoring/blackbox_exporter \
 		./monitoring/mongodb_exporter \
 		./monitoring/prometheus \
-		./monitoring/alertmanager
+		./monitoring/alertmanager \
+		./monitoring/grafana
 
 NETWORKS ?= front_net back_net mgmt_net
 
