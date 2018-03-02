@@ -1,0 +1,17 @@
+global:
+  slack_api_url: 'https://hooks.slack.com/services/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'
+  smtp_from: 'andywowotus@gmail.com'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_auth_username: 'andywowotus@gmail.com'
+  smtp_auth_identity: 'andywowotus@gmail.com'
+  smtp_auth_password: 'otusdevops123'
+
+route:
+  receiver: 'all-notifications'
+
+receivers:
+  - name: 'all-notifications'
+    slack_configs:
+      - channel: '#andrey-susoev'
+    email_configs:
+    - to: 'andywowotus@gmail.com'

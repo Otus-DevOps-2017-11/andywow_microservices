@@ -1,4 +1,67 @@
-# Homework-21 Docker-8
+# Homework-23 Monitoring-2
+
+## Базовая часть
+
+Разбили наш `docker-compose.yml` на 2 конфига - один для сервисов, второй для
+мониторинга.
+
+Установили `cAdvisor`. Сбор метрик с docker-контейнеров работает.
+
+Установили `Grafana`. Сделали пару dashboard-ов. Добавили сборк метрик с
+приложения `post`. Не совсем понял, почему метрика `post_count` появивилась не
+сразу. Второй раз сэмелировать это не удалось.
+
+Установили `alertmanager`. Настроили alerting на недоступность сервиса.
+Настроили нотификацию в slack-чат.
+
+URL dockerhub: https://hub.docker.com/r/andywow
+
+## Задание *
+
+`Makefile` доработан.
+
+Забор метрик из `Dockerfile`-а:
+
+На docker-хосте `vm1` создан файл `/etc/docker/daemon.json`:
+```
+{
+  "metrics-addr" : "0.0.0.0:9323",
+  "experimental" : true
+}
+```
+docker-демон был перезапущен.
+
+После этого добавлена запись о docker-хосте в `prometheus.yml` и пересобран
+образ `prometheus`.
+
+На сайте prometheus нашел 2 утилиты для валидации конфигов `prometheus` и
+`alertmanager`:
+
+```
+go get github.com/prometheus/prometheus/cmd/promtool
+go get github.com/prometheus/alertmanager/cmd/amtool
+```
+
+Алертинг по email-у настроен.
+
+## Задание **
+
+Пришлось сделать отдельный образ для `grafana` и в него копировать наш datasource
+и дашборды. Пришлось забить в параметры дашбордов железно имя источника, т.к.
+динамически они передавать пока еще не научили:
+
+https://github.com/grafana/grafana/issues/10786
+
+Добавил интеграцию со `stackdriver` - использовал образ
+https://github.com/frodenas/stackdriver_exporter
+
+Собрал, указанные в дефолтовом примере: загрузка cpu, кол-во ядер, кол-во информации,
+записанной на диск.
+
+В приложение `post-py` добавил простенькую метрику, которая считает количество vote-ов для
+постов.
+
+# Homework-21 Monitoring-1
 
 ## Базовая часть
 
