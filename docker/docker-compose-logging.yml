@@ -1,0 +1,40 @@
+version: '3.3'
+
+services:
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    networks:
+      mgmt_net:
+
+  fluentd:
+    build: ./fluentd
+    ports:
+      - '24224:24224'
+      - "24224:24224/udp"
+    networks:
+      mgmt_net:
+
+  elasticsearch:
+    image: elasticsearch:latest
+    expose:
+      - 9200
+    ports:
+      - "9200:9200"
+    networks:
+      mgmt_net:
+
+  kibana:
+    image: kibana:latest
+    ports:
+      - "5601:5601"
+    networks:
+      mgmt_net:
+      front_net:
+
+networks:
+  front_net:
+    external: true
+  mgmt_net:
+    external: true
