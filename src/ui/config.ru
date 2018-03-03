@@ -1,4 +1,4 @@
-require 'bundler/setup'
+#require 'bundler/setup'
 require 'rack'
 require 'prometheus/middleware/collector'
 require 'prometheus/middleware/exporter'
