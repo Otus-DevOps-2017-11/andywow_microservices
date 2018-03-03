@@ -22,6 +22,11 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: service.ui
+    environment:
+      - COMMENT_SERVICE_HOST=comment
+      - COMMENT_SERVICE_PORT=9292
+      - POST_SERVICE_HOST=post
+      - POST_SERVICE_PORT=5000
     ports:
       - ${UI_PORT}:${UI_PORT}/tcp
     networks:
