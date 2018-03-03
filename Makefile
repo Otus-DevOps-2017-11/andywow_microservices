@@ -8,13 +8,14 @@ IMAGE_PATHS ?=	./src/comment \
 		./monitoring/mongodb_exporter \
 		./monitoring/prometheus \
 		./monitoring/alertmanager \
-		./monitoring/grafana
+		./monitoring/grafana \
+		./docker/fluentd
 
 NETWORKS ?= front_net back_net mgmt_net
 
 .PHONY: build pull push remove \
-	start-network start-service start-monitor start \
-	stop-network stop-service stop-monitor stop
+	start-network start-service start-logging start-monitor start \
+	stop-network stop-service stop-logging stop-monitor stop
 
 define get_image_name
 	${USER_NAME}/$(lastword $(subst /, " ", "$1"))
@@ -65,6 +66,10 @@ start-service:
 	@echo "Starting services"
 	@cd ${CURDIR}/docker && docker-compose up -d
 
+start-logging:
+	@echo "Starting logging services"
+	@cd ${CURDIR}/docker && docker-compose \
+		-f docker-compose-logging.yml up -d
 
 start-monitor:
 	@echo "Starting monitor services"
@@ -84,6 +89,10 @@ stop-network:
 stop-service:
 	@echo "Stopping services"
 	@cd ${CURDIR}/docker && docker-compose down
+
+stop-logging:
+	@echo "Stopping logging services"
+	@cd ${CURDIR}/docker && docker-compose -f docker-compose-logging.yml down
 
 stop-monitor:
 	@echo "Stopping monitor services"
