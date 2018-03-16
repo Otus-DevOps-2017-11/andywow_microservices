@@ -40,7 +40,7 @@ services:
           - blackbox-exporter-dmz
 
   cadvisor:
-    image: google/cadvisor:v0.29.0
+    image: google/cadvisor:${CADVISOR_VERSION}
     deploy:
       mode: global
     volumes:
@@ -48,17 +48,13 @@ services:
       - '/var/run:/var/run:rw'
       - '/sys:/sys:ro'
       - '/var/lib/docker/:/var/lib/docker:ro'
-    ports:
-      - '8080:8080'
     networks:
       mgmt_net:
         aliases:
           - cadvisor-dmz
 
   stackdriver-exporter:
-    image: frodenas/stackdriver-exporter:latest
-    ports:
-      - '9255:9255'
+    image: frodenas/stackdriver-exporter:${STACKDRIVER_VERSION}
     deploy:
       placement:
         constraints:
@@ -85,7 +81,7 @@ services:
     depends_on:
       - prometheus
     ports:
-      - 3000:3000
+      - ${GRAFANA_PORT}:3000
     networks:
       mgmt_net:
         aliases:
@@ -94,7 +90,7 @@ services:
   prometheus:
     image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION}
     ports:
-      - '9090:9090'
+      - '${PROMETHEUS_PORT}:9090'
     networks:
       front_net:
       mgmt_net:
@@ -102,11 +98,9 @@ services:
           - prometheus-dmz
 
   alertmanager:
-    image: ${DOCKER_USERNAME}/alertmanager:${ALTERMANAGER_VERSION}
+    image: ${DOCKER_USERNAME}/alertmanager:${ALERTMANAGER_VERSION}
     command:
       - '--config.file=/etc/alertmanager/config.yml'
-    ports:
-      - 9093:9093
     networks:
       mgmt_net:
         aliases:
