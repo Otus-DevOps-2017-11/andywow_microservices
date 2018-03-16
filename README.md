@@ -1,3 +1,116 @@
+# Homework-27 swarm-1
+
+## Базовая часть
+
+Сделали 3 VM для swarm-кластера - 1 master и 2 worker-а.
+
+```
+docker-machine create --driver google \
+   --google-project  docker-XXXXXX  \
+   --google-zone europe-west1-b \
+   --google-machine-type g1-small \
+   --google-machine-image $(gcloud compute images list --filter ubuntu-1604-lts --uri) \
+   master-1
+```
+
+Проинициализировали swarm-кластер на master-е
+```
+docker swarm init
+```
+Ввели worker-ы в кластер
+```
+docker swarm join --token MY-TOKEN 10.132.0.6:2377
+```
+Проверили, что все узлы активны
+```
+➜  docker git:(swarm-1) ✗ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+xbw9110t3fdax1l8cb5audm89 *   master-1            Ready               Active              Leader
+vnkkdygops3b25ns31958knpb     worker-1            Ready               Active              
+l36wlz9ll76k9enlsfr0biakx     worker-2            Ready               Active              
+```
+Деплоим наши сервисы:
+```
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+Смотрим результат деплоя стека:
+```
+➜  docker git:(swarm-1) ✗ docker stack services DEV
+ID                  NAME                MODE                REPLICAS            IMAGE                    PORTS
+alg1014kowz2        DEV_comment         replicated          1/1                 andywow/comment:latest   
+ctzlrdnjy946        DEV_post            replicated          1/1                 andywow/post:latest      
+oz43yjbdzquh        DEV_post_db         replicated          1/1                 mongo:3.2                
+zf5e1zlzgmok        DEV_ui              replicated          1/1                 andywow/ui:latest        *:9292->9292/tcp
+```
+Устанавливаем метки узлам и смотрим их:
+```
+docker node update --label-add reliability=high master-1
+docker node ls -q | xargs docker node inspect  -f '{{ .ID }} [{{ .Description.Hostname }}]: {{ .Spec.Labels }}'
+```
+В `docker-compose.yml` файле установили опцию деплоя сервисов по меткам и
+передеплоили сервисы.
+
+У меня возникли проблемы с деплоем сервисов, для себя понял, что смотреть логи
+сервиса можно командой
+```
+docker service logs <SERVICE_NAME>
+```
+Деплоим наши сервисы и смотрим, где они расположились
+```
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+docker stack ps DEV
+```
+Далее мы увеличили количество реплик для сервисов до двух (кроме БД) и
+задеплоили снова. Видим, что количество реплик увеличилось
+```
+➜  docker git:(swarm-1) ✗ docker stack services DEV                                                                        
+ID                  NAME                MODE                REPLICAS            IMAGE                    PORTS
+1yeyq483ueej        DEV_comment         replicated          2/2                 andywow/comment:latest   
+ql4t2a31vd13        DEV_post_db         replicated          1/1                 mongo:3.2                
+u182tagxakwk        DEV_post            replicated          2/2                 andywow/post:latest      
+x553ddogx57m        DEV_ui              replicated          2/2                 andywow/ui:latest        *:9292->9292/tcp
+```
+
+Добавили в кластер еще 1 worker:
+
+```
+docker-machine create --driver google \                                                                                           
+   --google-project  docker-XXXXXX  \
+   --google-zone europe-west1-b \
+   --google-machine-type g1-small \
+   --google-machine-image $(gcloud compute images list --filter ubuntu-1604-lts --uri) \
+   worker-3
+...
+docker swarm join --token XXXXXXX 10.132.0.6:2377
+...
+➜  docker git:(swarm-1) ✗ docker node ls                     
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+xbw9110t3fdax1l8cb5audm89 *   master-1            Ready               Active              Leader
+vnkkdygops3b25ns31958knpb     worker-1            Ready               Active              
+l36wlz9ll76k9enlsfr0biakx     worker-2            Ready               Active              
+4fwuzlwtojyeh1oq5ceblujgj     worker-3            Ready               Active
+```
+Автоматически запустилось на 3-м worker-е только `node-exporter`
+```
+➜  docker git:(swarm-1) ✗ docker stack ps DEV                                                                                                               
+ID                  NAME                                          IMAGE                                  NODE                DESIRED STATE       CURRENT STATE            ERROR                       PORTS
+2ur03h6m8bdh        DEV_node-exporter.4fwuzlwtojyeh1oq5ceblujgj   prom/node-exporter:latest              worker-3            Running             Running 2 minutes ago
+...
+```
+увеличили количество реплик до трех и передеплоили. На 3-м worker-е дополнительно
+запустились `ui`, `post` и `comment` сервисы.
+
+Добавили поддержку `rolling update` для сервисов.
+Настроили ограничение по ресурсам для контейнеров и политики перезапуска, в
+случае падения.
+
+Файл `docker-compose-monitoring.yml` был создан в рамках предыдущего ДЗ.
+
+
+
+
+
+
 # Homework-25 Logging-1
 
 ## Базовая часть

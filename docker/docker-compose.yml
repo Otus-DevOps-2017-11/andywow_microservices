@@ -1,11 +1,15 @@
-version: '3.3'
+version: '3.5'
 services:
 
   post_db:
     image: mongo:3.2
     volumes:
       - post_db:/data/db
-    command: [ "--bind_ip", "post_db-back" ]
+    #command: [ "--bind_ip", "post_db-back" ]
+    deploy:
+      placement:
+        constraints:
+          - node.labels.reliability == high
     networks:
       back_net:
         aliases:
@@ -17,11 +21,29 @@ services:
 
   ui:
     image: ${DOCKER_USERNAME}/ui:${UI_VERSION}
-    logging:
-      driver: "fluentd"
-      options:
-        fluentd-address: localhost:24224
-        tag: service.ui
+#    logging:
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: localhost:24224
+#        tag: service.ui
+    deploy:
+      mode: replicated
+      replicas: 3
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 150M
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 3s
+      update_config:
+        delay: 5s
+        parallelism: 1
+        failure_action: rollback
     environment:
       - COMMENT_SERVICE_HOST=comment
       - COMMENT_SERVICE_PORT=9292
@@ -30,19 +52,38 @@ services:
     ports:
       - ${UI_PORT}:${UI_PORT}/tcp
     networks:
+      front_net:
       mgmt_net:
         aliases:
           - ui-dmz
 
   post:
     image: ${DOCKER_USERNAME}/post:${POST_VERSION}
+    deploy:
+      mode: replicated
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 300M
+      restart_policy:
+        condition: on-failure
+        max_attempts: 12
+        delay: 1s
+      placement:
+        constraints:
+          - node.role == worker
+      update_config:
+        delay: 10s
+        parallelism: 2
+        failure_action: rollback
     environment:
       - POST_DATABASE_HOST=post_db-back
-    logging:
-      driver: "fluentd"
-      options:
-        fluentd-address: localhost:24224
-        tag: service.post
+#    logging:
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: localhost:24224
+#        tag: service.post
     networks:
       back_net:
       front_net:
@@ -54,6 +95,24 @@ services:
 
   comment:
     image: ${DOCKER_USERNAME}/comment:${COMMENT_VERSION}
+    deploy:
+      mode: replicated
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 300M
+      restart_policy:
+        condition: on-failure
+        max_attempts: 12
+        delay: 1s
+      placement:
+        constraints:
+          - node.role == worker
+      update_config:
+        delay: 10s
+        parallelism: 2
+        failure_action: rollback
     environment:
       - COMMENT_DATABASE_HOST=comment_db-back
     networks:
@@ -70,8 +129,5 @@ volumes:
 
 networks:
   front_net:
-    external: true
   back_net:
-    external: true
   mgmt_net:
-    external: true

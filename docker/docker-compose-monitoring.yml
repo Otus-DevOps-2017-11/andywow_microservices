@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.5'
 services:
 
   node-exporter:
@@ -8,6 +8,8 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+    deploy:
+      mode: global
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
@@ -19,7 +21,7 @@ services:
 
   mongodb-exporter:
     image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION}
-    command: ["-mongodb.uri", "post_db-back"]
+    command: ["-mongodb.uri", "post_db"]
     networks:
       back_net:
       mgmt_net:
@@ -28,9 +30,9 @@ services:
 
   blackbox-exporter:
     image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION}
-    command:
-      - '--config.file=/etc/blackbox_exporter/config.yml'
-      - '--web.listen-address=blackbox-exporter-dmz:9115'
+#    command:
+#      - '--config.file=/etc/blackbox_exporter/config.yml'
+#      - '--web.listen-address=blackbox-exporter:9115'
     networks:
       front_net:
       mgmt_net:
@@ -39,6 +41,8 @@ services:
 
   cadvisor:
     image: google/cadvisor:v0.29.0
+    deploy:
+      mode: global
     volumes:
       - '/:/rootfs:ro'
       - '/var/run:/var/run:rw'
@@ -53,11 +57,17 @@ services:
 
   stackdriver-exporter:
     image: frodenas/stackdriver-exporter:latest
+    ports:
+      - '9255:9255'
+    deploy:
+      placement:
+        constraints:
+          - node.labels.reliability == high
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/stackdriver.json
       - STACKDRIVER_EXPORTER_GOOGLE_PROJECT_ID=docker-193319
       - STACKDRIVER_EXPORTER_MONITORING_METRICS_TYPE_PREFIXES=compute.googleapis.com/instance/cpu,compute.googleapis.com/instance/disk
-      - STACKDRIVER_EXPORTER_WEB_LISTEN_ADDRESS=stackdriver-exporter-dmz:9255
+      - STACKDRIVER_EXPORTER_WEB_LISTEN_ADDRESS=stackdriver-exporter:9255
     volumes:
       - '/tmp/stackdriver.json:/tmp/stackdriver.json'
     networks:
@@ -92,7 +102,7 @@ services:
           - prometheus-dmz
 
   alertmanager:
-    image: ${DOCKER_USERNAME}/alertmanager
+    image: ${DOCKER_USERNAME}/alertmanager:${ALTERMANAGER_VERSION}
     command:
       - '--config.file=/etc/alertmanager/config.yml'
     ports:
@@ -105,10 +115,10 @@ services:
 volumes:
   grafana_data:
 
-networks:
-  front_net:
-    external: true
-  back_net:
-    external: true
-  mgmt_net:
-    external: true
+#networks:
+#  front_net:
+#    external: true
+#  back_net:
+#    external: true
+#  mgmt_net:
+#    external: true
