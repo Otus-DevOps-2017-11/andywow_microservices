@@ -2,7 +2,7 @@ version: '3.5'
 services:
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:${NODEEXPORTER_VERSION:-latest}
     user: root
     volumes:
       - /proc:/host/proc:ro
@@ -20,7 +20,7 @@ services:
           - node-exporter-dmz
 
   mongodb-exporter:
-    image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION}
+    image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION:-latest}
     command: ["-mongodb.uri", "post_db"]
     networks:
       back_net:
@@ -29,7 +29,7 @@ services:
           - mongodb-exporter-dmz
 
   blackbox-exporter:
-    image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION}
+    image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION:-latest}
 #    command:
 #      - '--config.file=/etc/blackbox_exporter/config.yml'
 #      - '--web.listen-address=blackbox-exporter:9115'
@@ -40,7 +40,7 @@ services:
           - blackbox-exporter-dmz
 
   cadvisor:
-    image: google/cadvisor:${CADVISOR_VERSION}
+    image: google/cadvisor:${CADVISOR_VERSION:-v0.29.0}
     deploy:
       mode: global
     volumes:
@@ -48,13 +48,15 @@ services:
       - '/var/run:/var/run:rw'
       - '/sys:/sys:ro'
       - '/var/lib/docker/:/var/lib/docker:ro'
+    ports:
+      - '${CADVISOR_PORT:-8080}:8080'
     networks:
       mgmt_net:
         aliases:
           - cadvisor-dmz
 
   stackdriver-exporter:
-    image: frodenas/stackdriver-exporter:${STACKDRIVER_VERSION}
+    image: frodenas/stackdriver-exporter:${STACKDRIVER_VERSION:-latest}
     deploy:
       placement:
         constraints:
@@ -72,7 +74,7 @@ services:
           - stackdriver-exporter-dmz
 
   grafana:
-    image: ${DOCKER_USERNAME}/grafana:${GRAFANA_VERSION}
+    image: ${DOCKER_USERNAME}/grafana:${GRAFANA_VERSION:-latest}
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
@@ -81,16 +83,16 @@ services:
     depends_on:
       - prometheus
     ports:
-      - ${GRAFANA_PORT}:3000
+      - ${GRAFANA_PORT:-3000}:3000
     networks:
       mgmt_net:
         aliases:
           - grafana-dmz
 
   prometheus:
-    image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION}
+    image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION:-latest}
     ports:
-      - '${PROMETHEUS_PORT}:9090'
+      - '${PROMETHEUS_PORT:-9090}:9090'
     networks:
       front_net:
       mgmt_net:
@@ -98,7 +100,7 @@ services:
           - prometheus-dmz
 
   alertmanager:
-    image: ${DOCKER_USERNAME}/alertmanager:${ALERTMANAGER_VERSION}
+    image: ${DOCKER_USERNAME}/alertmanager:${ALERTMANAGER_VERSION:-latest}
     command:
       - '--config.file=/etc/alertmanager/config.yml'
     networks:
