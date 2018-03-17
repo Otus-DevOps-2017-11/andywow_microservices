@@ -182,6 +182,14 @@ z92m9as8zdd0        DEV_blackbox-exporter      replicated          1/1          
 zcby4yuagqwm        DEV_post_db                replicated          1/1                 mongo:3.2
 ```
 
+Попробовал указывать файл конфига внутри `docker-compose` файла
+
+```
+env_file:
+  - ./Docker/api/api.env
+```
+но, как я понял, он отвечает за передачу переменных внутрь контейнера, а не
+`docker-compose` файла
 
 # Homework-25 Logging-1
 
