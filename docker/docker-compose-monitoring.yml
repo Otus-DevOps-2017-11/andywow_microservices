@@ -1,13 +1,15 @@
-version: '3.3'
+version: '3.5'
 services:
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:${NODEEXPORTER_VERSION:-latest}
     user: root
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+    deploy:
+      mode: global
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
@@ -18,8 +20,8 @@ services:
           - node-exporter-dmz
 
   mongodb-exporter:
-    image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION}
-    command: ["-mongodb.uri", "post_db-back"]
+    image: ${DOCKER_USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION:-latest}
+    command: ["-mongodb.uri", "post_db"]
     networks:
       back_net:
       mgmt_net:
@@ -27,10 +29,10 @@ services:
           - mongodb-exporter-dmz
 
   blackbox-exporter:
-    image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION}
-    command:
-      - '--config.file=/etc/blackbox_exporter/config.yml'
-      - '--web.listen-address=blackbox-exporter-dmz:9115'
+    image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_VERSION:-latest}
+#    command:
+#      - '--config.file=/etc/blackbox_exporter/config.yml'
+#      - '--web.listen-address=blackbox-exporter:9115'
     networks:
       front_net:
       mgmt_net:
@@ -38,26 +40,32 @@ services:
           - blackbox-exporter-dmz
 
   cadvisor:
-    image: google/cadvisor:v0.29.0
+    image: google/cadvisor:${CADVISOR_VERSION:-v0.29.0}
+    deploy:
+      mode: global
     volumes:
       - '/:/rootfs:ro'
       - '/var/run:/var/run:rw'
       - '/sys:/sys:ro'
       - '/var/lib/docker/:/var/lib/docker:ro'
     ports:
-      - '8080:8080'
+      - '${CADVISOR_PORT:-8080}:8080'
     networks:
       mgmt_net:
         aliases:
           - cadvisor-dmz
 
   stackdriver-exporter:
-    image: frodenas/stackdriver-exporter:latest
+    image: frodenas/stackdriver-exporter:${STACKDRIVER_VERSION:-latest}
+    deploy:
+      placement:
+        constraints:
+          - node.labels.reliability == high
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/stackdriver.json
       - STACKDRIVER_EXPORTER_GOOGLE_PROJECT_ID=docker-193319
       - STACKDRIVER_EXPORTER_MONITORING_METRICS_TYPE_PREFIXES=compute.googleapis.com/instance/cpu,compute.googleapis.com/instance/disk
-      - STACKDRIVER_EXPORTER_WEB_LISTEN_ADDRESS=stackdriver-exporter-dmz:9255
+      - STACKDRIVER_EXPORTER_WEB_LISTEN_ADDRESS=stackdriver-exporter:9255
     volumes:
       - '/tmp/stackdriver.json:/tmp/stackdriver.json'
     networks:
@@ -66,7 +74,7 @@ services:
           - stackdriver-exporter-dmz
 
   grafana:
-    image: ${DOCKER_USERNAME}/grafana:${GRAFANA_VERSION}
+    image: ${DOCKER_USERNAME}/grafana:${GRAFANA_VERSION:-latest}
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
@@ -75,16 +83,16 @@ services:
     depends_on:
       - prometheus
     ports:
-      - 3000:3000
+      - ${GRAFANA_PORT:-3000}:3000
     networks:
       mgmt_net:
         aliases:
           - grafana-dmz
 
   prometheus:
-    image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION}
+    image: ${DOCKER_USERNAME}/prometheus:${PROMETHEUS_VERSION:-latest}
     ports:
-      - '9090:9090'
+      - '${PROMETHEUS_PORT:-9090}:9090'
     networks:
       front_net:
       mgmt_net:
@@ -92,11 +100,9 @@ services:
           - prometheus-dmz
 
   alertmanager:
-    image: ${DOCKER_USERNAME}/alertmanager
+    image: ${DOCKER_USERNAME}/alertmanager:${ALERTMANAGER_VERSION:-latest}
     command:
       - '--config.file=/etc/alertmanager/config.yml'
-    ports:
-      - 9093:9093
     networks:
       mgmt_net:
         aliases:
@@ -105,10 +111,10 @@ services:
 volumes:
   grafana_data:
 
-networks:
-  front_net:
-    external: true
-  back_net:
-    external: true
-  mgmt_net:
-    external: true
+#networks:
+#  front_net:
+#    external: true
+#  back_net:
+#    external: true
+#  mgmt_net:
+#    external: true

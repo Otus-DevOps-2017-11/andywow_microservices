@@ -1,3 +1,196 @@
+# Homework-27 swarm-1
+
+## Базовая часть
+
+Сделали 3 VM для swarm-кластера - 1 master и 2 worker-а.
+
+```
+docker-machine create --driver google \
+   --google-project  docker-XXXXXX  \
+   --google-zone europe-west1-b \
+   --google-machine-type g1-small \
+   --google-machine-image $(gcloud compute images list --filter ubuntu-1604-lts --uri) \
+   master-1
+```
+
+Проинициализировали swarm-кластер на master-е
+```
+docker swarm init
+```
+Ввели worker-ы в кластер
+```
+docker swarm join --token MY-TOKEN 10.132.0.6:2377
+```
+Проверили, что все узлы активны
+```
+➜  docker git:(swarm-1) ✗ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+xbw9110t3fdax1l8cb5audm89 *   master-1            Ready               Active              Leader
+vnkkdygops3b25ns31958knpb     worker-1            Ready               Active              
+l36wlz9ll76k9enlsfr0biakx     worker-2            Ready               Active              
+```
+Деплоим наши сервисы:
+```
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+Смотрим результат деплоя стека:
+```
+➜  docker git:(swarm-1) ✗ docker stack services DEV
+ID                  NAME                MODE                REPLICAS            IMAGE                    PORTS
+alg1014kowz2        DEV_comment         replicated          1/1                 andywow/comment:latest   
+ctzlrdnjy946        DEV_post            replicated          1/1                 andywow/post:latest      
+oz43yjbdzquh        DEV_post_db         replicated          1/1                 mongo:3.2                
+zf5e1zlzgmok        DEV_ui              replicated          1/1                 andywow/ui:latest        *:9292->9292/tcp
+```
+Устанавливаем метки узлам и смотрим их:
+```
+docker node update --label-add reliability=high master-1
+docker node ls -q | xargs docker node inspect  -f '{{ .ID }} [{{ .Description.Hostname }}]: {{ .Spec.Labels }}'
+```
+В `docker-compose.yml` файле установили опцию деплоя сервисов по меткам и
+передеплоили сервисы.
+
+У меня возникли проблемы с деплоем сервисов, для себя понял, что смотреть логи
+сервиса можно командой
+```
+docker service logs <SERVICE_NAME>
+```
+Деплоим наши сервисы и смотрим, где они расположились
+```
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+docker stack ps DEV
+```
+Далее мы увеличили количество реплик для сервисов до двух (кроме БД) и
+задеплоили снова. Видим, что количество реплик увеличилось
+```
+➜  docker git:(swarm-1) ✗ docker stack services DEV                                                                        
+ID                  NAME                MODE                REPLICAS            IMAGE                    PORTS
+1yeyq483ueej        DEV_comment         replicated          2/2                 andywow/comment:latest   
+ql4t2a31vd13        DEV_post_db         replicated          1/1                 mongo:3.2                
+u182tagxakwk        DEV_post            replicated          2/2                 andywow/post:latest      
+x553ddogx57m        DEV_ui              replicated          2/2                 andywow/ui:latest        *:9292->9292/tcp
+```
+
+Добавили в кластер еще 1 worker:
+
+```
+docker-machine create --driver google \                                                                                           
+   --google-project  docker-XXXXXX  \
+   --google-zone europe-west1-b \
+   --google-machine-type g1-small \
+   --google-machine-image $(gcloud compute images list --filter ubuntu-1604-lts --uri) \
+   worker-3
+...
+docker swarm join --token XXXXXXX 10.132.0.6:2377
+...
+➜  docker git:(swarm-1) ✗ docker node ls                     
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+xbw9110t3fdax1l8cb5audm89 *   master-1            Ready               Active              Leader
+vnkkdygops3b25ns31958knpb     worker-1            Ready               Active              
+l36wlz9ll76k9enlsfr0biakx     worker-2            Ready               Active              
+4fwuzlwtojyeh1oq5ceblujgj     worker-3            Ready               Active
+```
+Автоматически запустилось на 3-м worker-е только `node-exporter`
+```
+➜  docker git:(swarm-1) ✗ docker stack ps DEV                                                                                                               
+ID                  NAME                                          IMAGE                                  NODE                DESIRED STATE       CURRENT STATE            ERROR                       PORTS
+2ur03h6m8bdh        DEV_node-exporter.4fwuzlwtojyeh1oq5ceblujgj   prom/node-exporter:latest              worker-3            Running             Running 2 minutes ago
+...
+```
+увеличили количество реплик до трех и передеплоили. На 3-м worker-е дополнительно
+запустились `ui`, `post` и `comment` сервисы.
+
+Добавили поддержку `rolling update` для сервисов.
+Настроили ограничение по ресурсам для контейнеров и политики перезапуска, в
+случае падения.
+
+Файл `docker-compose-monitoring.yml` был создан в рамках предыдущего ДЗ.
+
+
+
+## Задание ***
+
+Первое, что пришло в голову - параметризировать все порты сервисов и версии
+docker image-й. Это  было не ошибочно, т.к. не до конца разобрался с сетевыми
+драйверами. В итоге параметризируем только порты сервисов, которые выносим
+наружу.
+
+Далее появился вопрос: как передавать `.env` файл для разных окружений.
+В результате раздумий для деплоя доработал `Makefile` из предыдущих ДЗ ;)
+
+Для его выполнения были созданы 2 файла `.env_STAGE` и `.env_DEV`
+(STAGE и DEV - имена соответствующих окружений)
+
+Пример выполнения скрипта (большой листинг):
+
+```
+➜  andywow_microservices git:(swarm-1) ✗ make -e STACKS=STAGE deploy
+Deploying stacks
+Updating service STAGE_mongodb-exporter (id: f3ep00ed1i0zi07ks5vul6f7m)
+Updating service STAGE_stackdriver-exporter (id: tzgf1c1wn8nzkb5aef9dba1j5)
+Updating service STAGE_alertmanager (id: kugkxe6s7tpudymeieqy24iq8)
+Updating service STAGE_node-exporter (id: uepst9jcgf5savx7tpx50zuma)
+Updating service STAGE_post_db (id: i463x5buxqasp2ypjuwjxxp9p)
+Updating service STAGE_comment (id: k6hksh0bqbth3mgpr7m62zfna)
+Updating service STAGE_grafana (id: kk4r3otvggoh48jq7q5b2nmu9)
+Updating service STAGE_post (id: uzdphp5firc3hwkzpo3unmum1)
+Updating service STAGE_blackbox-exporter (id: jdyhbyzpcq6ze385fjpuxwu0s)
+Updating service STAGE_cadvisor (id: 88ce6euuzlnap4ygrm8n92vh1)
+Updating service STAGE_prometheus (id: q7ed8vtp1c7wx5f92gwbqeaoj)
+Updating service STAGE_ui (id: bdfkwdbx3etkhzny5fru94p2s)
+➜  andywow_microservices git:(swarm-1) ✗ make -e STACKS=DEV deploy  
+Deploying stacks
+Updating service DEV_cadvisor (id: i3g06oetpzh0teg0gzgg2lake)
+Updating service DEV_post (id: efywfi6eg8f4vuw0vuomh00z2)
+Updating service DEV_comment (id: qx2ffxnb2f2unw8fliz55qbkb)
+Updating service DEV_node-exporter (id: hwe623s9irgu1kfdzr0y48vef)
+Updating service DEV_post_db (id: zcby4yuagqwmcrnz2dwsjmrjf)
+Updating service DEV_grafana (id: aptuaab7ly4fzwskpzjdj9q5i)
+Updating service DEV_stackdriver-exporter (id: frhm7vnqd0bqupbxi9109wln1)
+Updating service DEV_blackbox-exporter (id: z92m9as8zdd0tc9thf9gg9vpi)
+Updating service DEV_ui (id: vu43b1gclwxsetsm3pcfxvgr3)
+Updating service DEV_mongodb-exporter (id: z0i8gmjw84t9v67dgjmgwiw9c)
+Updating service DEV_alertmanager (id: 8cs96rswxu7j9prjo7szlb7ek)
+Updating service DEV_prometheus (id: 5p82y3156760rzu6zd6e7btl4)
+➜  andywow_microservices git:(swarm-1) ✗ docker stack services STAGE                                                                                                       
+ID                  NAME                         MODE                REPLICAS            IMAGE                                  PORTS
+88ce6euuzlna        STAGE_cadvisor               global              4/4                 google/cadvisor:v0.29.0                
+bdfkwdbx3etk        STAGE_ui                     replicated          3/3                 andywow/ui:latest                      *:9293->9292/tcp
+f3ep00ed1i0z        STAGE_mongodb-exporter       replicated          1/1                 andywow/mongodb_exporter:latest        
+i463x5buxqas        STAGE_post_db                replicated          1/1                 mongo:3.2                              
+jdyhbyzpcq6z        STAGE_blackbox-exporter      replicated          1/1                 prom/blackbox-exporter:latest          
+k6hksh0bqbth        STAGE_comment                replicated          3/3                 andywow/comment:latest                 
+kk4r3otvggoh        STAGE_grafana                replicated          1/1                 andywow/grafana:latest                 *:3001->3000/tcp
+kugkxe6s7tpu        STAGE_alertmanager           replicated          1/1                 andywow/alertmanager:latest            
+q7ed8vtp1c7w        STAGE_prometheus             replicated          1/1                 andywow/prometheus:latest              *:9091->9090/tcp
+tzgf1c1wn8nz        STAGE_stackdriver-exporter   replicated          1/1                 frodenas/stackdriver-exporter:latest   
+uepst9jcgf5s        STAGE_node-exporter          global              4/4                 prom/node-exporter:latest              
+uzdphp5firc3        STAGE_post                   replicated          3/3                 andywow/post:latest
+➜  andywow_microservices git:(swarm-1) ✗ docker stack services DEV   
+ID                  NAME                       MODE                REPLICAS            IMAGE                                  PORTS
+5p82y3156760        DEV_prometheus             replicated          1/1                 andywow/prometheus:latest              *:9090->9090/tcp
+8cs96rswxu7j        DEV_alertmanager           replicated          1/1                 andywow/alertmanager:latest            
+aptuaab7ly4f        DEV_grafana                replicated          1/1                 andywow/grafana:latest                 *:3000->3000/tcp
+efywfi6eg8f4        DEV_post                   replicated          3/3                 andywow/post:latest                    
+frhm7vnqd0bq        DEV_stackdriver-exporter   replicated          1/1                 frodenas/stackdriver-exporter:latest   
+hwe623s9irgu        DEV_node-exporter          global              4/4                 prom/node-exporter:latest              
+i3g06oetpzh0        DEV_cadvisor               global              4/4                 google/cadvisor:v0.29.0                
+qx2ffxnb2f2u        DEV_comment                replicated          3/3                 andywow/comment:latest                 
+vu43b1gclwxs        DEV_ui                     replicated          3/3                 andywow/ui:latest                      *:9292->9292/tcp
+z0i8gmjw84t9        DEV_mongodb-exporter       replicated          1/1                 andywow/mongodb_exporter:latest        
+z92m9as8zdd0        DEV_blackbox-exporter      replicated          1/1                 prom/blackbox-exporter:latest          
+zcby4yuagqwm        DEV_post_db                replicated          1/1                 mongo:3.2
+```
+
+Попробовал указывать файл конфига внутри `docker-compose` файла
+
+```
+env_file:
+  - ./Docker/api/api.env
+```
+но, как я понял, он отвечает за передачу переменных внутрь контейнера, а не
+`docker-compose` файла
+
 # Homework-25 Logging-1
 
 ## Базовая часть

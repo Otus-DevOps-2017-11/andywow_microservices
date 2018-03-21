@@ -6,32 +6,32 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets:
-        - 'prometheus-dmz:9090'
+        - 'prometheus:9090'
 
   - job_name: 'ui'
     static_configs:
       - targets:
-        - 'ui-dmz:9292'
+        - 'ui:9292'
 
   - job_name: 'comment'
     static_configs:
       - targets:
-        - 'comment-dmz:9292'
+        - 'comment:9292'
 
   - job_name: 'post'
     static_configs:
       - targets:
-        - 'post-dmz:5000'
+        - 'post:5000'
 
   - job_name: 'node'
     static_configs:
       - targets:
-        - 'node-exporter-dmz:9100'
+        - 'node-exporter:9100'
 
   - job_name: 'mongodb'
     static_configs:
       - targets:
-        - 'mongodb-exporter-dmz:9216'
+        - 'mongodb-exporter:9216'
 
   - job_name: 'blackbox'
     metrics_path: /probe
@@ -48,20 +48,27 @@ scrape_configs:
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
-        replacement: blackbox-exporter-dmz:9115
+        replacement: blackbox-exporter:9115
 
   - job_name: 'cadvisor'
     static_configs:
       - targets:
-        - 'cadvisor-dmz:8080'
+        - 'master-1:8080'
+        - 'worker-1:8080'
+        - 'worker-2:8080'
+        - 'worker-3:8080'
 
   - job_name: 'docker'
     static_configs:
-      - targets: ['172.17.0.1:9323']
+      - targets:
+        - 'master-1:9323'
+        - 'worker-1:9323'
+        - 'worker-2:9323'
+        - 'worker-3:9323'
 
   - job_name: 'stackdriver'
     static_configs:
-      - targets: ['stackdriver-exporter-dmz:9255']
+      - targets: ['stackdriver-exporter:9255']
 
 rule_files:
   - "alerts.yml"
@@ -71,4 +78,4 @@ alerting:
     - scheme: http
       static_configs:
         - targets:
-          - "alertmanager-dmz:9093"
+          - "alertmanager:9093"
