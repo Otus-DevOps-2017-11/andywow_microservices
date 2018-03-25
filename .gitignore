@@ -22,3 +22,4 @@ kubernetes/kubespray
 *.tfvars
 .terraform*
 terraform.tfstate*
+**/modules/containers
