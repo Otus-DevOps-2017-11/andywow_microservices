@@ -15,3 +15,5 @@ bugged-code
 
 united.yml
 *.env_*
+
+kubernetes/kubespray

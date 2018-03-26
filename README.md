@@ -1,3 +1,21 @@
+# Homework-28 kubernetes-1
+
+## Базовая часть
+
+Описание деплоя `kubernetes` по гайду `the hard way` я думаю нет смыслы делать -
+в мануале все очень подробно описано и не требует каких либо шагов в сторону.
+
+Деплой наших деплойментов проверил на созданном кластере:
+
+```
+➜  kubernetes_the_hard_way git:(kubernetes-1) ✗ kubectl apply -f ../comment-deployment.yml
+deployment "comment-deployment" configured
+➜  kubernetes_the_hard_way git:(kubernetes-1) ✗ kubectl get pods -l app=comment
+NAME                                  READY     STATUS    RESTARTS   AGE
+comment-deployment-699f79f68c-5p6lv   1/1       Running   0          54s
+```
+
+
 # Homework-27 swarm-1
 
 ## Базовая часть
