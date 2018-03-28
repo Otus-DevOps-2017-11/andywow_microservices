@@ -1,4 +1,51 @@
-# Homework-28 kubernetes-2
+# Homework-30 kubernetes-3
+
+## Базовая часть
+
+Смотрим, как работает `kube-dns`:
+```
+# отключаем kube-dns и его autoscaler
+➜  terraform git:(kubernetes-3) ✗ kubectl scale deployment --replicas 0
+-n kube-system kube-dns-autoscaler
+➜  terraform git:(kubernetes-3) ✗ kubectl scale deployment --replicas 0
+-n kube-system kube-dns
+# смотрим, что dns перестал работать
+➜  terraform git:(kubernetes-3) ✗ kubectl exec -ti -n dev ui-8555b89475-fwnxt
+nslookup comment
+nslookup: can't resolve '(null)': Name does not resolve
+
+nslookup: can't resolve 'comment': Try again
+command terminated with exit code 1
+# Возвращаем назад
+➜  terraform git:(kubernetes-3) ✗ kubectl scale deployment --replicas 1 -n kube-system kube-dns-autoscaler
+➜  terraform git:(kubernetes-3) ✗ kubectl exec -ti -n dev ui-8555b89475-fwnxt nslookup comment
+nslookup: can't resolve '(null)': Name does not resolve
+
+Name:      comment
+Address 1: 10.63.247.110 comment.dev.svc.cluster.local
+```
+
+Для приложения `ui` сменили тип сервиса на `LoadBalancer` - успешно работает,
+приложение доступно по `80`-му порту.
+
+При конфигурации `Ingress`-а время ожидания применения конфигурации варьировалось
+от 30 секунд до 3-х минут. Жалко, что нигде не отображается статус
+`Configuring...`, например. Можно понять только на web-странице, когда
+`Healthy`-стутус у instance-групп будет полностью готов.
+
+Сделал самодописанный сертификат и загрузили его в кластер:
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=35.186.254.104"
+kubectl create secret tls ui-ingress --key tls.key --cert tls.crt -n dev
+```
+
+Протокол `http` автоматически не удалился. Пересоздал `ingress`:
+```
+kubectl delete ingress ui -n dev
+```
+
+
+# Homework-29 kubernetes-2
 
 ## Базовая часть
 
@@ -12,7 +59,7 @@ mkdir $HOME/.kube || true
 touch $HOME/.kube/config
 
 export KUBECONFIG=$HOME/.kube/config
-sudo -E ./minikube start --vm-driver=none
+sudo -E minikube start --vm-driver=none
 ```
 
 Задеплоили `ui-deployment`:
@@ -112,6 +159,15 @@ kubectl create clusterrolebinding kubernetes-dashboard  \
 kubectl get sa kubernetes-dashboard -n kube-system -o yaml
 kubectl get clusterrolebinding kubernetes-dashboard -n kube-system -o yaml
 ```
+
+Добавил описание для [kubernetes secret](./kubernetes/reddit/ui-ingress-secret.yml)
+
+Включаем `Network Policy` в `GKE`:
+```
+gcloud beta container clusters update cluster-1 --zone=europe-west1-b --update-addons=NetworkPolicy=ENABLED
+gcloud beta container clusters update cluster-1 --zone=europe-west1-b --enable-network-policy
+```
+
 
 # Homework-28 kubernetes-1
 
