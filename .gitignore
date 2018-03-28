@@ -23,3 +23,6 @@ kubernetes/kubespray
 .terraform*
 terraform.tfstate*
 **/modules/containers
+
+kubernetes/reddit/*.key
+kubernetes/reddit/*.crt
