@@ -44,6 +44,14 @@ kubectl create secret tls ui-ingress --key tls.key --cert tls.crt -n dev
 kubectl delete ingress ui -n dev
 ```
 
+Создали GCE-диск:
+```
+gcloud compute disks create --size=25GB --zone=europe-west1-b reddit-mongo-disk
+```
+При использовании GCE-диска данные при пересоздании БД сохраняются.
+Далее попробовали использовать не весь диск, а его часть - для этого использовали
+сущность `Claim`. Далее описали новый `StorageClass`  - для SSD дисков. Затем
+для данного класса создали свой `Claim`.
 
 # Homework-29 kubernetes-2
 
