@@ -2,16 +2,17 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ui
+  name: {{ .Release.Name }}-{{ .Chart.Name }}
   annotations:
-    kubernetes.io/ingress.allow-http: "false"
+#    kubernetes.io/ingress.allow-http: "false"
+    kubernetes.io/ingress.class: "gce"
 spec:
-  tls:
-    - secretName: ui-ingress
+#  tls:
+#    - secretName: ui-ingress
   rules:
   - http:
       paths:
       - path: /*
         backend:
-          serviceName: ui
+          serviceName: {{ .Release.Name }}-{{ .Chart.Name }}
           servicePort: 9292
