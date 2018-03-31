@@ -1,0 +1,20 @@
+comment:
+  image:
+    repository: andywow/comment
+    tag: latest
+  service:
+    externalPort: 9292
+
+post:
+  image:
+    repository: andywow/post
+    tag: latest
+    service:
+      externalPort: 5000
+
+ui:
+  image:
+    repository: andywow/ui
+    tag: latest
+    service:
+      externalPort: 9292
