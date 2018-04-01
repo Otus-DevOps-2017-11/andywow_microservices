@@ -31,6 +31,14 @@ https://gitlab.com/finestructure/pipeline-trigger, но оно не умеет �
 коробки по `http` (только `https`) и не умеет запускать отдлельные `job`-ы.
 За основу взял его код и допилил для работы.
 
+Необходимо завести 3 переменные на уровне группы проектов в `gitlab`:
+
+Name|Description
+-|-
+CI_REDDIT_DEPLOY_PROJECT_ID| id проекта `reddit-deploy`
+CI_REDDIT_DEPLOY_TOKEN | CICD token для проекта `reddit-deploy`
+CI_TRIGGER_USER_TOKEN | auth token для пользователя с правами на проект `reddit-deploy`
+
 
 # Homework-30 kubernetes-3
 
