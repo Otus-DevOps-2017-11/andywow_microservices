@@ -7,6 +7,9 @@ image:
   repository: andywow/ui
   tag: latest
 
+ingress:
+  class: nginx
+
 postHost:
 postPort:
 commentHost:
