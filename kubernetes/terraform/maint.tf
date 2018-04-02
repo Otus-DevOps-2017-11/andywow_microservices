@@ -3,7 +3,9 @@ module "infra" {
   project            = "${var.project}"
   zone               = "${var.zone}"
   initial_node_count = "${var.initial_node_count}"
+  cluster_name       = "${var.cluster_name}"
   gke_min_version    = "${var.gke_min_version}"
+  node_machine_type  = "${var.node_machine_type}"
   node_disk_size     = "${var.node_disk_size}"
 }
 
