@@ -1,3 +1,118 @@
+# Homework-28 kubernetes-2
+
+## Базовая часть
+
+Установили `kubectl` и `minikube`. Стартовал `minikube` на локальной машине:
+```
+export MINIKUBE_WANTUPDATENOTIFICATION=false
+export MINIKUBE_WANTREPORTERRORPROMPT=false
+export MINIKUBE_HOME=$HOME
+export CHANGE_MINIKUBE_NONE_USER=true
+mkdir $HOME/.kube || true
+touch $HOME/.kube/config
+
+export KUBECONFIG=$HOME/.kube/config
+sudo -E ./minikube start --vm-driver=none
+```
+
+Задеплоили `ui-deployment`:
+
+```
+➜  kubernetes git:(kubernetes-2) ✗ kubectl apply -f ui-deployment.yml        
+deployment "ui" created
+➜  kubernetes git:(kubernetes-2) ✗ kubectl get deployment
+NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+ui        3         3         3            3           21s
+➜  kubernetes git:(kubernetes-2) ✗ kubectl get pods --selector component=ui
+NAME                 READY     STATUS    RESTARTS   AGE
+ui-b8d87b496-hndq7   1/1       Running   0          2m
+ui-b8d87b496-nvrw2   1/1       Running   0          2m
+ui-b8d87b496-tql5r   1/1       Running   0          2m
+```
+
+После попытки `port-forwarding` столкнулся с проблемой, что должен быть
+установлен пакет `socat`. После установки перенаправление портов заработало.
+Но начала падать сеть моей VM, в которой я делаю ДЗ. И тут я сделал то,
+с чем разбирался потом несколько
+часов. В настройках VM я сменил тип сети с `NAT` на `Bridge`. После этого DNS
+в kubernetes-кластере просто перестал работать - pod-ы не видели друг друга по
+имени. Посмотрев статус системных подов,
+```
+kubectl get pods --namespace kube-system
+```
+я увидел, что `kube-dns` постоянно перезапускается. Посмотрев логи убитых
+контейнеров я увидел записи вида:
+```
+I0322 19:22:16.466054       1 nanny.go:108] dnsmasq[11]: Maximum number of concurrent DNS queries reached (max: 150)
+I0322 19:22:23.886621       1 nanny.go:108] dnsmasq[11]: Maximum number of concurrent DNS queries reached (max: 150)
+```
+Нашел, что я неединственный такой: https://github.com/kubernetes/minikube/issues/2027
+и выполнил work-around:
+```
+nameserver -> 8.8.8.8
+
+sudo systemctl stop systemd-resolved
+sudo systemctl disable systemd-resolved
+```
+После перезапуска кластера, все стало видно. Но шел я к этому очень долго.
+
+Далее возникли проблемы с взаимодействим сервисов `ui` и `post`. Путем
+экспериментов собрал последние образа с использование `zipkin`, но в сервисе
+`post` закоментировал обращение к нему, т.к. не смог понять, почему он
+неправильно формирует строку обращения.
+
+Из-за того, что пришлось разбираться с проблемой взаимодействия, порядок выполнения
+ДЗ немного нарушился - попробовал в GKE все задеплоить, чтобы убедиться, что
+проблема не в `minikube`.
+
+Итоговый список команд, который использовался (опишу, дабы не забыть)
+```
+sudo -E minikube start --vm-driver=none
+sudo minikube stop
+sudo minikube delete
+kubectl config get-contexts
+kubectl config use-context minikube
+kubectl get pods
+kubectl get services
+kubectl get deployment
+kubectl get namespace
+kubectl apply -f ./ [-n namespace]
+kubectl delete -f ./
+kubectl logs <pod-id>
+kubectl logs deployment/ui
+kubectl exec -it <podid> sh
+kubectl describe service <service_name
+kubectl port-forward <pod_id> 8080:9292>
+minikube service ui
+minikube addons list
+minikube addons enable dashboard
+```
+
+Для GKE был создан кластер сначало руками, а затем с использование
+[terraform](./kubernetes/terraform).
+
+При работе с GKE сервис аккаунт для панели управления у меня создался
+автоматически (при развертывании руками и через `terraform`). дополнительно
+создавать не пришлось. YAML-конфигурацию для дашборда тоже не пришлось менять,
+нужные записи уже были там. А вот назначение роли приложения пришлось сделать:
+```
+kubectl create clusterrolebinding kubernetes-dashboard  \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:kubernetes-dashboard
+```
+
+## Задание *
+
+`terraform` конфигурация находится в папке: [terraform](./kubernetes/terraform)
+
+`yaml` манифесты находятся в папке [gke_yml](./kubernetes/gke_yml).
+
+Экспортировать их можно командами:
+```
+kubectl get sa kubernetes-dashboard -n kube-system -o yaml
+kubectl get clusterrolebinding kubernetes-dashboard -n kube-system -o yaml
+```
+
 # Homework-28 kubernetes-1
 
 ## Базовая часть

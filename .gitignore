@@ -17,3 +17,9 @@ united.yml
 *.env_*
 
 kubernetes/kubespray
+
+#terraform settings
+*.tfvars
+.terraform*
+terraform.tfstate*
+**/modules/containers

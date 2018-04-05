@@ -79,21 +79,21 @@ def find_posts():
 
 @app.route("/posts")
 def posts():
-    with zipkin_span(
-        service_name='post',
-        zipkin_attrs=ZipkinAttrs(
-            trace_id=request.headers['X-B3-TraceID'],
-            span_id=request.headers['X-B3-SpanID'],
-            parent_span_id=request.headers['X-B3-ParentSpanID'],
-            flags=request.headers['X-B3-Flags'],
-            is_sampled=request.headers['X-B3-Sampled'],
-        ),
-        span_name='/posts',
-        transport_handler=http_transport,
-        port=5000,
-        sample_rate=100,
-    ):
-        posts = find_posts()
+    #with zipkin_span(
+    #    service_name='post',
+    #    zipkin_attrs=ZipkinAttrs(
+    #        trace_id=request.headers['X-B3-TraceID'],
+    #        span_id=request.headers['X-B3-SpanID'],
+    #        parent_span_id=request.headers['X-B3-ParentSpanID'],
+    #        flags=request.headers['X-B3-Flags'],
+    #        is_sampled=request.headers['X-B3-Sampled'],
+    #    ),
+    #    span_name='/posts',
+    #    transport_handler=http_transport,
+    #    port=5000,
+    #    sample_rate=100,
+    #):
+    posts = find_posts()
     return posts
 
 
@@ -173,21 +173,21 @@ def find_post(id):
 # Find a post
 @app.route('/post/<id>')
 def get_post(id):
-    with zipkin_span(
-        service_name='post',
-        zipkin_attrs=ZipkinAttrs(
-            trace_id=request.headers['X-B3-TraceID'],
-            span_id=request.headers['X-B3-SpanID'],
-            parent_span_id=request.headers['X-B3-ParentSpanID'],
-            flags=request.headers['X-B3-Flags'],
-            is_sampled=request.headers['X-B3-Sampled'],
-        ),
-        span_name='/post/<id>',
-        transport_handler=http_transport,
-        port=5000,
-        sample_rate=100,
-    ):
-        post = find_post(id)
+    #with zipkin_span(
+    #    service_name='post',
+    #    zipkin_attrs=ZipkinAttrs(
+    #        trace_id=request.headers['X-B3-TraceID'],
+    #        span_id=request.headers['X-B3-SpanID'],
+    #        parent_span_id=request.headers['X-B3-ParentSpanID'],
+    #        flags=request.headers['X-B3-Flags'],
+    #        is_sampled=request.headers['X-B3-Sampled'],
+    #    ),
+    #    span_name='/post/<id>',
+    #    transport_handler=http_transport,
+    #    port=5000,
+    #    sample_rate=100,
+    #):
+    post = find_post(id)
     return post
 
 
