@@ -28,3 +28,4 @@ kubernetes/reddit/*.key
 kubernetes/reddit/*.crt
 
 **/reddit/charts/*
+**/efk/charts/*
