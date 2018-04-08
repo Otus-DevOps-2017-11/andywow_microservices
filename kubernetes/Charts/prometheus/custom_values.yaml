@@ -589,13 +589,39 @@ alertmanagerFiles:
 ## Prometheus server ConfigMap entries
 ##
 serverFiles:
-  alerts: {}
+  alerts:
+    groups:
+      - name: alert.rules
+        rules:
+        - alert: Kubernetes API server is down
+          expr: up{job="kubernetes-apiservers"} == 0
+          for: 1m
+          labels:
+            severity: high
+          annotations:
+            description: 'API server is down'
+
+        - alert: Kubernetes node problem
+          expr: kube_node_status_condition{status!="false",condition!="Ready"} == 1
+          for: 1m
+          labels:
+            severity: high
+          annotations:
+            description: 'Problem on node {{$labels.node}} - {{ $labels.condition }} is happened'
+
   rules: {}
 
   prometheus.yml:
     rule_files:
       - /etc/config/rules
       - /etc/config/alerts
+
+    alerting:
+      alertmanagers:
+        - scheme: http
+          static_configs:
+            - targets:
+              - "prom-prometheus-alertmanager:9093"
 
     global:
       scrape_interval: 30s
