@@ -1,3 +1,79 @@
+# Homework-32 kubernetes-5
+
+## Базовая часть
+
+Установили `nginx` контроллер:
+
+```
+helm install stable/nginx-ingress --name nginx
+```
+
+Скопировали `helm-chart` для `prometheus` c github-а.
+Установили `prometheus`:
+
+```
+helm upgrade prom . -f custom_values.yaml --install
+```
+
+Метрики собираются, все работает. Включили `kube-state-metrics` и передеплоили
+сервис:
+
+```
+helm upgrade prom . -f custom_values.yaml --install
+```
+
+Включили `node_exporter`ов. Метрики появились.
+
+Далее добавили поиск `pod`-ов по метке `app=reddit` и отображение меток,
+присвоенных им `kubernetes`-м.
+
+Сделали отдельные `endpoint-ы` для каждого сервиса (post, comment, ui).
+
+Установили `grafana`:
+
+```
+helm upgrade --install grafana stable/grafana --set "server.adminPassword=admin" \
+--set "server.service.type=NodePort" \
+--set "server.ingress.enabled=true" \
+--set "server.ingress.hosts={reddit-grafana}"
+```
+
+Импортировали `kubernetes` dashboard с сайта `grafana`.
+
+При импорте `dashboard`-ов, пришлось вручную задавать имя `datasource` для каждого
+графика, т.к. ранее мы его статически указывали в `dashboard`-ах для возможности
+автодеплоя при разворачивании `grafana`.
+
+В `template` добавили перменную `namespace`.
+
+На слайде `44` ошибка - в запросе должно быть `kubernetes_namespace` вместо
+`namespace`.
+
+Дашборды сохранил в директорию
+[grafana_dashboards](./kubernetes/grafana_dashboards)
+
+Импортировали дашборд `kubernetes deployment metrics`.
+
+Хосту из `bigpool` установили метку `elasticsearch`
+
+Запустили `EFK` стек:
+
+```
+kubectl apply -f ./efk
+helm upgrade --install kibana stable/kibana \
+  --set "ingress.enabled=true" \
+  --set "ingress.hosts={reddit-kibana}" \
+  --set "env.ELASTICSEARCH_URL=http://elasticsearch-logging:9200" \
+  --version 0.1.1
+```
+
+## Задание *
+
+Задеплоили `alertmanager`.
+
+Сделал `EFK` чарт для `helm`:
+[grafana_dashboards](./kubernetes/Charts/efk)
+
 # Homework-31 kubernetes-4
 
 ## Базовая часть
